@@ -10,7 +10,7 @@
                 </div>
             </template>
             <el-form @submit.prevent="handleLogin" :model="loginForm" label-position="top">
-                <el-form-item label="Email">
+                <el-form-item label="Email" :error="errors.email?.[0]">
                     <el-input v-model="loginForm.email">
                         <template #prefix>
                             <el-icon>
@@ -19,7 +19,7 @@
                         </template>
                     </el-input>
                 </el-form-item>
-                <el-form-item label="Password">
+                <el-form-item label="Password" :error="errors.password?.[0]">
                     <el-input type="password" v-model="loginForm.password" show-password>
                         <template #prefix>
                             <el-icon>
@@ -58,7 +58,16 @@ const loginForm = reactive({
     password: '',
 });
 
+const errors = reactive({
+    email: null,
+    password: null,
+});
+
 const handleLogin = async () => {
+
+    errors.email = null;
+    errors.password = null;
+
     if (!loginForm.email || !loginForm.password) {
         showNotification({
             title: 'Cảnh báo',
@@ -78,11 +87,16 @@ const handleLogin = async () => {
         });
         router.push({ name: 'Admin' });
     } catch (error) {
-        showNotification({
-            title: 'Lỗi',
-            message: error.response.data.error || 'Đăng nhập thất bại',
-            type: 'error'
-        });
+        if (error.response && error.response.data.errors) {
+            errors.email = error.response.data.errors.email || null;
+            errors.password = error.response.data.errors.password || null;
+        } else {
+            showNotification({
+                title: 'Lỗi',
+                message: error.response.data.error || 'Đăng nhập thất bại',
+                type: 'error'
+            });
+        }
     } finally {
         loading.value = false;
     }
