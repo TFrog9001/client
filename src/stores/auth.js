@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import api from '../axios/api';
 import Cookies from 'js-cookie';
+import { showNotification } from '../utils/notification';
 
 export const useAuthStore = defineStore('auth', {
     state: () => ({
@@ -24,6 +25,11 @@ export const useAuthStore = defineStore('auth', {
 
                 await this.fetchUser();
             } catch (error) {
+                if (error.response && error.response.data && error.response.data.error ||
+                    error.response.data.errors
+                ) {
+                    throw error;
+                }
                 throw new Error('Đăng nhập thất bại');
             }
         },
@@ -61,15 +67,26 @@ export const useAuthStore = defineStore('auth', {
         },
         async logout() {
             try {
-                await api.post('/auth/logout');
+                const response = await api.post('/auth/logout');
+                showNotification({
+                    title: 'Thành công',
+                    message: response.data.message || 'Đăng xuất thành công',
+                    type: 'success',
+                });
             } catch (error) {
                 console.error('Lỗi khi đăng xuất:', error);
+                showNotification({
+                    title: 'Thất bại',
+                    message: 'Đăng xuất thất bại',
+                    type: 'error',
+                });
             } finally {
                 this.user = null;
                 this.token = null;
                 this.refreshToken = null;
                 Cookies.remove('token');
                 Cookies.remove('refresh_token');
+                localStorage.removeItem('user');
             }
         },
     },

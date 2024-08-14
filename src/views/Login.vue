@@ -19,7 +19,7 @@
                         </template>
                     </el-input>
                 </el-form-item>
-                <el-form-item label="Mật khẩu">
+                <el-form-item label="Password">
                     <el-input type="password" v-model="loginForm.password" show-password>
                         <template #prefix>
                             <el-icon>
@@ -45,8 +45,9 @@
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { ElNotification } from 'element-plus';
+// import { ElNotification } from 'element-plus';
 import { User, Message, Lock, Right } from '@element-plus/icons-vue';
+import { showNotification } from '../utils/notification';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -59,12 +60,10 @@ const loginForm = reactive({
 
 const handleLogin = async () => {
     if (!loginForm.email || !loginForm.password) {
-        ElNotification({
+        showNotification({
             title: 'Cảnh báo',
             message: 'Vui lòng nhập đầy đủ email và mật khẩu',
-            type: 'warning',
-            position: 'top-right',
-            duration: 5000
+            type: 'warning'
         });
         return;
     }
@@ -72,21 +71,17 @@ const handleLogin = async () => {
     loading.value = true;
     try {
         await authStore.login(loginForm);
-        ElNotification({
+        showNotification({
             title: 'Thành công',
             message: 'Đăng nhập thành công',
-            type: 'success',
-            position: 'top-right',
-            duration: 5000
+            type: 'success'
         });
         router.push({ name: 'Admin' });
     } catch (error) {
-        ElNotification({
+        showNotification({
             title: 'Lỗi',
-            message: error.message || 'Đăng nhập thất bại',
-            type: 'error',
-            position: 'top-right',
-            duration: 5000
+            message: error.response.data.error || 'Đăng nhập thất bại',
+            type: 'error'
         });
     } finally {
         loading.value = false;
@@ -151,6 +146,6 @@ const handleLogin = async () => {
 }
 
 .el-input__prefix .el-icon {
-    font-size: 16px;
+    font-size: 24px;
 }
 </style>
