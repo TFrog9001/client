@@ -1,28 +1,63 @@
-import { createWebHistory, createRouter } from "vue-router";
+import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '../stores/auth';
+import Login from '../views/Login.vue';
+import Admin from '../views/Admin.vue';
+import NotFound from '../views/NotFound.vue';
+import UserList from '../views/Users/UserList.vue';
+
 const routes = [
     {
-        path: "/:pathMatch(.*)*",
-        name: "notfound",
-        component: () => import("@/views/NotFound.vue"),
+        path: '/',
+        redirect: () => {
+            const authStore = useAuthStore();
+            return authStore.isAuthenticated ? { name: 'Admin' } : { name: 'Login' };
+        },
     },
     {
-        path: "/login",
-        name: "login",
-        component: () => import("@/views/Login.vue"),
-        // beforeEnter: (to, from, next) => {},
-        // beforeEnter: (to, from, next) => {
-        //     const authStore = useAuthStore();
-        //     if (authStore.isAdminLoggedIn) {
-        //         next("/home");
-        //     } else {
-        //         next();
-        //     }
-        // },
-    }
+        path: '/login',
+        name: 'Login',
+        component: Login,
+    },
+    {
+        path: '/admin',
+        name: 'Admin',
+        component: Admin,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/users',
+        name: 'Users',
+        component: UserList,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/test',
+        name: 'Test',
+        component: NotFound,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/:catchAll(.*)',
+        name: 'NotFound',
+        component: NotFound,
+    },
 ];
+
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
+    history: createWebHistory(),
     routes,
+});
+
+router.beforeEach((to, from, next) => {
+    const authStore = useAuthStore();
+    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+        return next({ name: 'Login' });
+    }
+    if (to.meta.requiresAdmin && !authStore.isAdmin) {
+        alert('Bạn không có quyền truy cập vào trang này.');
+        return next({ name: 'Login' });
+    }
+    next();
 });
 
 export default router;
