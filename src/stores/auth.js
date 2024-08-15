@@ -43,9 +43,9 @@ export const useAuthStore = defineStore('auth', {
         async refreshTokenForUser() {
             try {
                 // const response = await api.post('/auth/refresh', { refresh_Token: this.refreshToken });
-                const response = await api.post('/auth/refresh', null, { // null body
+                const response = await api.post('/auth/refresh', null, { 
                     headers: {
-                        'Authorization': `Bearer ${this.refreshToken}`  // Truyền refresh_token trong header
+                        'Authorization': `Bearer ${this.refreshToken}`  
                     }
                 });
                 this.token = response.data.token;
