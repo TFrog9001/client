@@ -65,6 +65,7 @@ const items = ref([
     { icon: 'mdi-home-city', title: 'Home', value: 'home', to: 'dashboard' },
     { icon: 'mdi-account', title: 'My Account', value: 'account', to: 'profile' },
     { icon: 'mdi-account-group-outline', title: 'Users', value: 'users', to: 'users' },
+    { icon: 'mdi-soccer-field', title: 'Fields', value: 'fields', to: 'fields' },
 ]);
 </script>
 

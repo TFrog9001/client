@@ -4,6 +4,7 @@ import Login from '../views/Login.vue';
 import Admin from '../views/Admin.vue';
 import NotFound from '../views/NotFound.vue';
 import UserList from '../views/Users/UserList.vue';
+import Fields from '../views/Fileds/Fields.vue';
 
 const routes = [
     {
@@ -28,6 +29,12 @@ const routes = [
         path: '/users',
         name: 'Users',
         component: UserList,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/fields',
+        name: 'Fields',
+        component: Fields,
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {

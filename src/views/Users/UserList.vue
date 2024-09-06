@@ -69,7 +69,7 @@
 </template>
 
 <script>
-import { getUsers, addUser, editUser, deleteUserById } from '../../services/userService';
+import userService from '../../services/userService';
 
 export default {
     data() {
@@ -104,7 +104,7 @@ export default {
     methods: {
         async fetchUsers() {
             try {
-                this.users = await getUsers();
+                this.users = await userService.getUsers();
             } catch (error) {
                 console.error('Lỗi khi lấy danh sách người dùng:', error);
             }
@@ -129,10 +129,10 @@ export default {
             }
             try {
                 if (this.editedUser.id) {
-                    await editUser({ ...this.editedUser, password: this.password }, this.editedUser.id);
+                    await userService.editUser({ ...this.editedUser, password: this.password }, this.editedUser.id);
                     this.fetchUsers();
                 } else {
-                    await addUser({ ...this.editedUser, password: this.password });
+                    await userService.addUser({ ...this.editedUser, password: this.password });
                     this.fetchUsers();
                 }
             } catch (error) {
@@ -147,7 +147,7 @@ export default {
         },
         async deleteUser() {
             try {
-                await deleteUserById(this.selectedUser.id);
+                await userService.deleteUserById(this.selectedUser.id);
                 this.fetchUsers();
             } catch (error) {
                 console.error('Lỗi khi xóa người dùng:', error);
