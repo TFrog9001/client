@@ -5,6 +5,11 @@ import Admin from '../views/Admin.vue';
 import NotFound from '../views/NotFound.vue';
 import UserList from '../views/Users/UserList.vue';
 import Fields from '../views/Fileds/Fields.vue';
+import Test from '../views/Test.vue';
+import FieldDetail from '../views/Fileds/FieldDetail.vue';
+import Calendar from '../components/Calendar.vue';
+import Booking from '../views/Booking/Booking.vue';
+import BookingDetail from '../views/Booking/BookingDetail.vue';
 
 const routes = [
     {
@@ -38,9 +43,33 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+        path: '/fields/:id',
+        name: 'FieldDetail',
+        component: FieldDetail,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/booking',
+        name: 'Booking',
+        component: Booking,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/booking/:id',
+        name: 'BookingDetail',
+        component: BookingDetail,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
         path: '/test',
         name: 'Test',
-        component: NotFound,
+        component: Test,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+        path: '/calendar',
+        name: 'Calandat',
+        component: Calendar,
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {

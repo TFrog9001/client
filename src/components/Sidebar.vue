@@ -3,8 +3,8 @@
         <v-list-item class="mb-2"
             prepend-avatar="https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png" nav>
             <v-list-item-title class="text-h6">{{ authStoreMenu.user?.name || 'User' }}</v-list-item-title>
-            <v-list-item-subtitle v-if="!rail && authStoreMenu.user">{{ authStoreMenu.user.email
-                }}</v-list-item-subtitle>
+            <!-- <v-list-item-subtitle v-if="!rail && authStoreMenu.user">{{ authStoreMenu.user.email
+                }}</v-list-item-subtitle> -->
             <template v-slot:append>
                 <v-btn icon="mdi-chevron-left" variant="text" @click.stop="rail = !rail"></v-btn>
             </template>
@@ -62,10 +62,10 @@ watch(smAndDown, (newValue) => {
 });
 
 const items = ref([
-    { icon: 'mdi-home-city', title: 'Home', value: 'home', to: 'dashboard' },
-    { icon: 'mdi-account', title: 'My Account', value: 'account', to: 'profile' },
-    { icon: 'mdi-account-group-outline', title: 'Users', value: 'users', to: 'users' },
-    { icon: 'mdi-soccer-field', title: 'Fields', value: 'fields', to: 'fields' },
+    { icon: 'mdi-home-city', title: 'Home', value: 'home', to: { name: 'Admin' } },
+    { icon: 'mdi-account-group-outline', title: 'Users', value: 'users', to: { name: 'Users' } },
+    { icon: 'mdi-soccer-field', title: 'Fields', value: 'fields', to: { name: 'Fields' } },
+    { icon: 'mdi-calendar-multiple-check', title: 'Booking', value: 'booking', to: { name: 'Booking' } },
 ]);
 </script>
 
