@@ -43,8 +43,8 @@ watchEffect(() => {
     <table>
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Sân 1</th>
+          <th>Khung giờ</th>
+          <th>Giá tiền sân</th>
         </tr>
       </thead>
       <tbody>
@@ -74,11 +74,12 @@ watchEffect(() => {
         backgroundColor: 'rgba(100, 181, 246)',
         left: '200px',
         top: element.top + 'px',
+        border: '1px solid',
       }"
     >
       {{ element.timeRange }}
       <br />
-      {{ element.price }}
+      {{ element.price }} VND
     </div>
   </div>
 </template>

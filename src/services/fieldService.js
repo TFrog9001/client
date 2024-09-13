@@ -55,6 +55,38 @@ const fieldService = {
             throw error;
         }
     },
+
+    // Thêm time slot
+    async addFieldPrice(price){
+        try {
+            const response = await api.post('prices', price)
+            return response.data;
+        } catch (error) {
+            console.error(`Có lỗi xảy ra khi thêm khung giờ:`, error);
+            throw error;
+        }
+    },
+
+    // update time slot
+    async updateFieldPrice(price){
+        try {
+            const response = await api.post(`/prices/${price.id}`, price)
+            return response.data;
+        } catch (error) {
+            console.error(`Có lỗi xãy ra khi cập nhập khung giờ:`, error);
+            throw error;
+        }
+    },
+
+    async deleteFieldPrice(id){
+        try {
+            const response = await api.delete(`/prices/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Có lỗi xảy ra khi xóa khung giờ:`, error);
+            throw error;
+        }
+    }
 }
 
 export default fieldService;
