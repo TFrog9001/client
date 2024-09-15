@@ -59,7 +59,7 @@ const fieldService = {
     // Thêm time slot
     async addFieldPrice(price){
         try {
-            const response = await api.post('prices', price)
+            const response = await api.post("/prices", price);
             return response.data;
         } catch (error) {
             console.error(`Có lỗi xảy ra khi thêm khung giờ:`, error);

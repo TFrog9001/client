@@ -26,9 +26,10 @@
           variant="tonal"
           @click="saveField"
         >
-          Save
+          {{ route.params.id ? "Save" : "Create" }}
         </v-btn>
         <v-btn
+          v-if="route.params.id"
           prepend-icon="mdi-delete"
           color="error"
           variant="tonal"
@@ -51,9 +52,11 @@
     <!-- Modal nhập khung giờ mới -->
     <v-dialog v-model="dialog" max-width="600">
       <v-card>
-        <v-card-title class="text-h6">
-          {{ selectedTimeSlot ? "Chỉnh sửa khung giờ" : "Thêm mới khung giờ" }}
+        <v-card-title v-if="selectedTimeSlot" class="text-h6">
+          Chỉnh sửa khung giờ
         </v-card-title>
+
+        <v-card-title v-else class="text-h6"> Thêm mới khung giờ </v-card-title>
 
         <v-divider></v-divider>
 
@@ -113,7 +116,10 @@
         <!-- Actions: Save and Cancel buttons -->
         <v-card-actions class="justify-end">
           <v-btn color="secondary" text @click="closeDialog">Cancel</v-btn>
-          <v-btn color="primary" @click="saveTimeSlot">Save</v-btn>
+          <v-btn v-if="selectedTimeSlot" color="primary" @click="saveTimeSlot"
+            >Save</v-btn
+          >
+          <v-btn v-else color="primary" @click="addTimeSlot">Add</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -177,28 +183,57 @@ const newTimeSlot = ref({ start_time: "", end_time: "", price: 0 });
 const selectedTimeSlot = ref(null);
 const colorPalette = ["blue", "green", "orange", "purple", "teal"];
 
+// Fetch field details or initialize for creating a new field
 const fetchFieldDetail = async () => {
   const id = route.params.id;
-  try {
-    field.value = await fieldService.getFieldById(id);
-  } catch (error) {
-    console.error("Lỗi khi tải chi tiết sân:", error);
+  if (id) {
+    // Edit mode - Fetch existing field
+    try {
+      field.value = await fieldService.getFieldById(id);
+    } catch (error) {
+      console.error("Lỗi khi tải chi tiết sân:", error);
+    }
+  } else {
+    // Create mode - Initialize empty field
+    field.value = {
+      name: "",
+      type: "",
+      status: "",
+      prices: [],
+    };
   }
 };
 
+// Save field (Create or Edit)
 const saveField = async () => {
+  const id = route.params.id;
   try {
-    await fieldService.editField(field.value, route.params.id);
-    showNotification({
-      title: "Thông báo",
-      message: "Lưu thông tin sân bóng thành công",
-      type: "success",
-    });
+    if (id) {
+      // Update existing field
+      await fieldService.editField(field.value, id);
+      showNotification({
+        title: "Thông báo",
+        message: "Lưu thông tin sân bóng thành công",
+        type: "success",
+      });
+    } else {
+      // Create new field
+      const response = await fieldService.addField(field.value);
+      console.log(response);
+      
+      showNotification({
+        title: "Thông báo",
+        message: "Tạo sân bóng mới thành công",
+        type: "success",
+      });
+      router.push({ path: `/fields/${response.id}`});
+    }
   } catch (error) {
     console.error("Lỗi khi lưu sân bóng:", error);
   }
 };
 
+// Delete field (only for existing fields)
 const deleteField = async () => {
   try {
     await fieldService.deleteFieldById(route.params.id);
@@ -207,14 +242,13 @@ const deleteField = async () => {
       message: "Sân bóng đã được xóa thành công",
       type: "success",
     });
-    router.push({ path: '/fields'});
+    router.push({ path: "/fields" });
   } catch (error) {
-
     console.error("Lỗi khi xóa sân bóng:", error);
   }
 };
-
-// Add or Edit time slot
+///////////////////////////////////// Slot time
+// Time Slot management
 const openDialog = () => {
   dialog.value = true;
 };
@@ -223,6 +257,36 @@ const closeDialog = () => {
   dialog.value = false;
   newTimeSlot.value = { start_time: "", end_time: "", price: 0 };
   selectedTimeSlot.value = null;
+};
+
+const addTimeSlot = async () => {
+  if (
+    !newTimeSlot.value.start_time ||
+    !newTimeSlot.value.end_time ||
+    newTimeSlot.value.price <= 0
+  ) {
+    alert("Vui lòng điền đầy đủ thông tin.");
+    return;
+  }
+
+  field.value.prices.push({ ...newTimeSlot.value });
+
+  field.value.prices.sort((a, b) => {
+    const [aHour, aMinute] = a.start_time.split(":").map(Number);
+    const [bHour, bMinute] = b.start_time.split(":").map(Number);
+
+    if (aHour !== bHour) {
+      return aHour - bHour;
+    }
+    return aMinute - bMinute;
+  });
+
+  closeDialog();
+  showNotification({
+    title: "Thông báo",
+    message: "Khung giờ đã được thêm",
+    type: "success",
+  });
 };
 
 const saveTimeSlot = async () => {
@@ -270,20 +334,45 @@ const editTimeSlot = (item) => {
 };
 
 const deleteTimeSlot = async (item) => {
+  // Xử lý xóa khung giờ từ cơ sở dữ liệu
   const confirmDelete = confirm("Bạn có chắc chắn muốn xóa khung giờ này?");
   if (!confirmDelete) return;
 
+  if (!route.params.id) {
+    // Tìm vị trí của time slot cần xóa trong mảng prices
+    const indexToRemove = field.value.prices.findIndex(
+      (slot) =>
+        slot.start_time === item.start_time &&
+        slot.end_time === item.end_time &&
+        slot.price === item.price
+    );
+
+    // Nếu tìm thấy, xóa phần tử khỏi mảng
+    if (indexToRemove !== -1) {
+      field.value.prices.splice(indexToRemove, 1);
+      showNotification({
+        title: "Thông báo",
+        message: "Khung giờ đã được xóa",
+        type: "success",
+      });
+      console.log("Delete time slot locally");
+    } else {
+      console.log("Không tìm thấy time slot để xóa");
+    }
+
+    return;
+  }
+
   try {
-    await fieldService.deleteFieldPrice(item.id);
+    await fieldService.deleteFieldPrice(item.id); // Xóa từ DB theo ID
     showNotification({
       title: "Thông báo",
       message: "Khung giờ đã được xóa",
       type: "success",
     });
-    fetchFieldDetail();
+    fetchFieldDetail(); // Cập nhật lại chi tiết sân
   } catch (error) {
     console.error("Lỗi khi xóa khung giờ:", error);
-    alert("Có lỗi xảy ra khi xóa khung giờ");
   }
 };
 
@@ -307,9 +396,7 @@ const getTimeSlotStyle = (timeSlot, index) => {
   };
 };
 
-onMounted(() => {
-  fetchFieldDetail();
-});
+onMounted(fetchFieldDetail);
 </script>
 
 <style scoped>

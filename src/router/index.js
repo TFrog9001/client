@@ -43,11 +43,18 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
+        path: '/fields/create',
+        name: 'FieldCreate',
+        component: FieldDetail,
+        meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
         path: '/fields/:id',
         name: 'FieldDetail',
         component: FieldDetail,
         meta: { requiresAuth: true, requiresAdmin: true },
     },
+    
     {
         path: '/booking',
         name: 'Booking',

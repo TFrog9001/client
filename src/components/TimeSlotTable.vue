@@ -5,6 +5,7 @@
     :items="prices"
     item-value="id"
     class="elevation-1"
+    hide-default-footer
   >
     <template v-slot:[`item.actions`]="{ item }">
       <v-icon color="success" small @click="handleEdit(item)">mdi-pencil</v-icon>
@@ -20,10 +21,10 @@ const props = defineProps({
 const emit = defineEmits(["edit", "delete"]);
 
 const headers = [
-  { key: "start_time", title: "Start Time" },
-  { key: "end_time", title: "End Time" },
-  { key: "price", title: "Price (VND)" },
-  { key: "actions", title: "Actions", align: "center" },
+  { key: "start_time", title: "Start Time" , sortable: false, class:"t-h4"},
+  { key: "end_time", title: "End Time" , sortable: false},
+  { key: "price", title: "Price (VND)" , sortable: false},
+  { key: "actions", title: "Actions", align: "center" , sortable: false},
 ];
 
 const handleEdit = (item) => {

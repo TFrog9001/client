@@ -49,7 +49,7 @@ const fetchFields = async () => {
 };
 
 const addField = () => {
-  console.log("Thêm sân mới");
+  router.push("/fields/create");
 };
 
 const editField = (field) => {
