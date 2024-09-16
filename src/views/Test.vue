@@ -1,180 +1,191 @@
 <template>
-  <v-row>
-    <v-col cols="6">
-      <v-card-text>
-        <v-form ref="form">
-          <v-text-field v-model="field.name" label="Tên sân" required />
-          <v-select
-            v-model="field.type"
-            :items="['5', '7', '11']"
-            label="Loại sân"
-            required
-          />
-          <v-select
-            v-model="field.status"
-            :items="['Hoạt động', 'Đang sửa chữa', 'Không hoạt động']"
-            label="Trạng thái"
-            required
-          />
-        </v-form>
-      </v-card-text>
+  <div>
+    <!-- Hiển thị thông tin sân -->
+    <h2>Thông tin sân: {{ field.name }}</h2>
+    <p>Vị trí: {{ field.location }}</p>
+    <p>Loại sân: {{ field.type }}</p>
+    <p>Trạng thái: {{ field.status }}</p>
 
-      <!-- Nút hành động cho phần thông tin sân -->
-      <v-card-actions>
-        <v-btn
-          prepend-icon="mdi-content-save"
-          color="primary"
-          variant="tonal"
-          @click="saveField"
-          >Save</v-btn
-        >
-        <v-btn
-          prepend-icon="mdi-delete"
-          color="error"
-          variant="tonal"
-          @click="deleteField"
-          >Delete</v-btn
-        >
-      </v-card-actions>
-    </v-col>
-  </v-row>
-  <hr class="mb-4" style="border: 1px black solid" />
-  <v-row>
-    <v-col cols="12">
-      <v-btn color="primary" @click="addTimeSlot">+ Add Time Slot</v-btn>
-    </v-col>
+    <h3>Giá theo khoảng thời gian:</h3>
+    <ul>
+      <li v-for="(price, index) in field.prices" :key="index">
+        {{ formatTime(price.start_time) }} - {{ formatTime(price.end_time) }}:
+        {{ formatPrice(price.price) }} VNĐ ({{ price.day_type }})
+      </li>
+    </ul>
 
-    <!-- Schedule Board -->
-    <v-col cols="12">
-      <v-card>
-        <v-card-title>Schedule Board</v-card-title>
-        <v-divider></v-divider>
-        <v-card-text>
-          <div class="schedule-board">
-            <div class="time-line" v-for="n in 18">
-              {{ n + 5 }}:00
-              <br />
-              |
-            </div>
-          </div>
-          <div class="schedule-board">
-            <div
-              class="time-slot"
-              v-for="price in field.prices"
-              :key="price.id"
-              :style="getTimeSlotStyle(price)"
-            >
-              <span>{{ price.price }} VND</span>
-              <br />
-              <span>{{ price.start_time }} - {{ price.end_time }}</span>
-            </div>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-col>
-
-    <!-- Table of Time Slots -->
-    <v-col cols="12">
-      <v-data-table
-        :headers="headers"
-        v-if="field.prices && field.prices.length"
-        :items="field.prices"
-        item-value="id"
-        class="elevation-1"
-      >
-        <template v-slot:[`item.actions`]="{ item }">
-          <v-icon small @click="editTimeSlot(item)"> mdi-pencil </v-icon>
-          <v-icon small @click="deleteTimeSlot(item)"> mdi-delete </v-icon>
-        </template>
-      </v-data-table>
-    </v-col>
-  </v-row>
+    <!-- Thêm form thêm giá mới -->
+    <form @submit.prevent="addTimeRange">
+      <input
+        v-model="newRange.startTime"
+        type="time"
+        placeholder="Thời gian bắt đầu"
+        required
+      />
+      <input
+        v-model="newRange.endTime"
+        type="time"
+        placeholder="Thời gian kết thúc"
+        required
+      />
+      <input
+        v-model.number="newRange.price"
+        type="number"
+        placeholder="Giá"
+        required
+      />
+      <select v-model="newRange.dayType" required>
+        <option value="Ngày thường">Ngày thường</option>
+        <option value="Cuối tuần">Cuối tuần</option>
+      </select>
+      <button type="submit">Thêm khoảng thời gian</button>
+    </form>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-// import { useRoute, useRouter } from "vue-router";
-import fieldService from "../services/fieldService";
-// import Calendar from "../../components/Calendar.vue";
+import { ref } from "vue";
 
-const field = ref({});
-const form = ref(null);
+// Dữ liệu sân bóng
+const field = ref({
+  id: 1,
+  name: "Sân AB1",
+  location: "123 Đường ABC",
+  type: "7",
+  status: "Không hoạt động",
+  created_at: "2024-07-25T14:47:03.000000Z",
+  updated_at: "2024-09-14T13:22:39.000000Z",
+  prices: [
+    {
+      id: 9,
+      field_id: 1,
+      start_time: "06:00:00",
+      end_time: "08:00:00",
+      day_type: "Ngày thường",
+      price: "200000.00",
+      created_at: "2024-09-13T04:47:07.000000Z",
+      updated_at: "2024-09-13T05:14:42.000000Z",
+    },
+    {
+      id: 1,
+      field_id: 1,
+      start_time: "08:00:00",
+      end_time: "10:00:00",
+      day_type: "Ngày thường",
+      price: "500000.00",
+      created_at: "2024-07-25T14:47:03.000000Z",
+      updated_at: "2024-07-25T14:47:03.000000Z",
+    },
+    {
+      id: 2,
+      field_id: 1,
+      start_time: "10:00:00",
+      end_time: "13:00:00",
+      day_type: "Ngày thường",
+      price: "600000.00",
+      created_at: "2024-07-25T14:47:03.000000Z",
+      updated_at: "2024-09-14T13:41:03.000000Z",
+    },
+  ],
+});
 
-const fetchFieldDetail = async () => {
-  // const id = route.params.id;
-  const id = 1;
-  try {
-    const fieldData = await fieldService.getFieldById(id);
-    field.value = fieldData;
-  } catch (error) {
-    console.error("Lỗi khi tải chi tiết sân:", error);
+// Biến để lưu giá trị của khoảng thời gian mới
+const newRange = ref({
+  startTime: "",
+  endTime: "",
+  price: null,
+  dayType: "Ngày thường",
+});
+
+// Hàm để format lại giờ từ định dạng chuỗi
+const formatTime = (time) => {
+  return time.slice(0, 5); // Bỏ giây để hiển thị HH:MM
+};
+
+// Hàm để format lại giá tiền
+const formatPrice = (price) => {
+  return new Intl.NumberFormat("vi-VN").format(price);
+};
+
+// Hàm để thêm khoảng thời gian giá mới
+const addTimeRange = () => {
+  const { startTime, endTime, price, dayType } = newRange.value;
+
+  // Kiểm tra tính hợp lệ
+  if (startTime >= endTime || price <= 0) {
+    alert("Khoảng thời gian không hợp lệ hoặc giá phải lớn hơn 0");
+    return;
   }
-};
 
-// const timeSlots = ref([
-//   { id: 1, start: "09:00", end: "11:00", price: 100, color: "green" },
-//   { id: 2, start: "13:00", end: "15:00", price: 120, color: "blue" },
-//   { id: 3, start: "18:00", end: "20:00", price: 160, color: "orange" },
-//   { id: 4, start: "21:00", end: "22:00", price: 30, color: "purple" },
-// ]);
+  // Tạo một mảng mới để lưu kết quả sau khi xử lý
+  let newPrices = [];
 
-const headers = [
-  { key: "start_time", title: "Start Time" },
-  { key: "end_time", title: "End Time" },
-  { key: "price", title: "Price (VND)" },
-  { key: "actions", title: "Actions", align: "center" },
-];
+  // Xử lý việc trùng thời gian
+  field.value.prices.forEach((priceRange) => {
+    // Nếu khoảng thời gian mới không chồng lên khoảng thời gian hiện có
+    if (endTime <= priceRange.start_time || startTime >= priceRange.end_time) {
+      newPrices.push(priceRange); // Thêm khoảng thời gian không bị ảnh hưởng
+    } else {
+      // Nếu khoảng thời gian mới chồng lên, cần chia lại các khoảng thời gian
+      if (startTime > priceRange.start_time) {
+        newPrices.push({
+          ...priceRange,
+          end_time: startTime, // Cắt phần kết thúc của khoảng hiện tại
+        });
+      }
 
-const addTimeSlot = () => {
-  // Logic thêm slot thời gian mới
-};
+      if (endTime < priceRange.end_time) {
+        newPrices.push({
+          ...priceRange,
+          start_time: endTime, // Cắt phần bắt đầu của khoảng hiện tại
+        });
+      }
+    }
+  });
 
-const editTimeSlot = (item) => {
-  // Logic sửa slot thời gian
-};
+  // Thêm khoảng thời gian mới vào mảng
+  newPrices.push({
+    id: field.value.prices.length + 1, // Tạo id mới
+    field_id: field.value.id,
+    start_time: startTime,
+    end_time: endTime,
+    day_type: dayType,
+    price: price.toString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
 
-const deleteTimeSlot = (item) => {
-  // Logic xóa slot thời gian
-};
+  // Sắp xếp lại mảng theo thời gian bắt đầu
+  newPrices.sort((a, b) => {
+    return a.start_time.localeCompare(b.start_time);
+  });
 
-const getTimeSlotStyle = (timeSlot) => {
-  const startHour = parseInt(timeSlot.start_time.split(":")[0]);
-  const endHour = parseInt(timeSlot.end_time.split(":")[0]);
+  // Cập nhật danh sách giá với mảng mới đã xử lý
+  field.value.prices = newPrices;
 
-  // Điều chỉnh để khung giờ bắt đầu từ 6:00 (startHour - 6)
-  const startGridColumn = startHour - 6 + 1; // Bắt đầu từ cột thứ 1
-  const endGridColumn = endHour - 6 + 1; // Kết thúc đúng cột
-
-  return {
-    gridColumn: `${startGridColumn} / ${endGridColumn}`,
-    backgroundColor: "black",
-    color: "white",
-    textAlign: "center",
-    padding: "5px",
-    borderRadius: "5px",
+  // Reset form
+  newRange.value = {
+    startTime: "",
+    endTime: "",
+    price: null,
+    dayType: "Ngày thường",
   };
 };
-
-onMounted(() => {
-  fetchFieldDetail();
-});
 </script>
 
 <style scoped>
-.schedule-board {
-  display: grid;
-  grid-template-columns: repeat(18, 1fr); /* 18 cột cho 6h - 24h */
-  grid-gap: 5px;
+ul {
+  list-style: none;
+  padding: 0;
 }
-
-.time-slot {
-  height: 50px;
-  display: block;
-  font-size: 14px;
-  color: white;
+li {
+  margin-bottom: 5px;
 }
-.time-line {
-  display: block;
-  font-size: 14px;
+form {
+  margin-top: 20px;
+}
+form input,
+form select {
+  margin-right: 10px;
 }
 </style>

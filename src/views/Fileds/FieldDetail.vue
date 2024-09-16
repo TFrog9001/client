@@ -119,7 +119,7 @@
           <v-btn v-if="selectedTimeSlot" color="primary" @click="saveTimeSlot"
             >Save</v-btn
           >
-          <v-btn v-else color="primary" @click="addTimeSlot">Add</v-btn>
+          <v-btn v-else color="primary" @click="saveTimeSlot">Add</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -131,7 +131,7 @@
         <v-divider></v-divider>
         <v-card-text>
           <div class="schedule-timeline">
-            <div class="time-line" v-for="hour in 18" :key="hour">
+            <div class="time-line" v-for="hour in 17" :key="hour">
               <span>{{ hour + 5 }}:00</span>
               <br />
               <span>|</span>
@@ -142,7 +142,7 @@
             <div
               class="time-slot"
               v-for="(price, index) in field.prices"
-              :key="price.id"
+              :key="price.index"
               :style="getTimeSlotStyle(price, index)"
             >
               <span>{{ price.price }} VND</span>
@@ -206,11 +206,10 @@ const fetchFieldDetail = async () => {
 
 // Save field (Create or Edit)
 const saveField = async () => {
-  const id = route.params.id;
   try {
-    if (id) {
+    if (route.params.id) {
       // Update existing field
-      await fieldService.editField(field.value, id);
+      await fieldService.editField(field.value, route.params.id);
       showNotification({
         title: "Thông báo",
         message: "Lưu thông tin sân bóng thành công",
@@ -219,14 +218,12 @@ const saveField = async () => {
     } else {
       // Create new field
       const response = await fieldService.addField(field.value);
-      console.log(response);
-      
       showNotification({
         title: "Thông báo",
         message: "Tạo sân bóng mới thành công",
         type: "success",
       });
-      router.push({ path: `/fields/${response.id}`});
+      router.push({ path: `/fields/${response.id}` });
     }
   } catch (error) {
     console.error("Lỗi khi lưu sân bóng:", error);
@@ -247,7 +244,7 @@ const deleteField = async () => {
     console.error("Lỗi khi xóa sân bóng:", error);
   }
 };
-///////////////////////////////////// Slot time
+
 // Time Slot management
 const openDialog = () => {
   dialog.value = true;
@@ -255,40 +252,11 @@ const openDialog = () => {
 
 const closeDialog = () => {
   dialog.value = false;
-  newTimeSlot.value = { start_time: "", end_time: "", price: 0 };
+  newTimeSlot.value = { start_time: "", end_time: "", price: 100000 };
   selectedTimeSlot.value = null;
 };
 
-const addTimeSlot = async () => {
-  if (
-    !newTimeSlot.value.start_time ||
-    !newTimeSlot.value.end_time ||
-    newTimeSlot.value.price <= 0
-  ) {
-    alert("Vui lòng điền đầy đủ thông tin.");
-    return;
-  }
-
-  field.value.prices.push({ ...newTimeSlot.value });
-
-  field.value.prices.sort((a, b) => {
-    const [aHour, aMinute] = a.start_time.split(":").map(Number);
-    const [bHour, bMinute] = b.start_time.split(":").map(Number);
-
-    if (aHour !== bHour) {
-      return aHour - bHour;
-    }
-    return aMinute - bMinute;
-  });
-
-  closeDialog();
-  showNotification({
-    title: "Thông báo",
-    message: "Khung giờ đã được thêm",
-    type: "success",
-  });
-};
-
+// Save Time Slot (Add or Edit)
 const saveTimeSlot = async () => {
   if (
     !newTimeSlot.value.start_time ||
@@ -299,32 +267,72 @@ const saveTimeSlot = async () => {
     return;
   }
 
-  const updatedSlot = {
-    field_id: route.params.id,
-    start_time: newTimeSlot.value.start_time,
-    end_time: newTimeSlot.value.end_time,
-    price: newTimeSlot.value.price,
-  };
+  const start = newTimeSlot.value.start_time.split(":").map(Number);
+  const end = newTimeSlot.value.end_time.split(":").map(Number);
 
-  if (selectedTimeSlot.value) {
-    updatedSlot.id = selectedTimeSlot.value.id;
-    await fieldService.updateFieldPrice(updatedSlot);
-    showNotification({
-      title: "Thông báo",
-      message: "Khung giờ đã được cập nhật",
-      type: "success",
-    });
-  } else {
-    await fieldService.addFieldPrice(updatedSlot);
-    showNotification({
-      title: "Thông báo",
-      message: "Khung giờ đã được thêm",
-      type: "success",
-    });
+  if (start[0] > end[0] || (start[0] === end[0] && start[1] >= end[1])) {
+    alert("Giờ kết thúc phải lớn hơn giờ bắt đầu.");
+    return;
   }
 
-  fetchFieldDetail();
-  closeDialog();
+  try {
+    const payload = {
+      start_time: newTimeSlot.value.start_time,
+      end_time: newTimeSlot.value.end_time,
+      price: newTimeSlot.value.price,
+    };
+
+    if (route.params.id) {
+      payload.field_id = route.params.id;
+      if (selectedTimeSlot.value) {
+        // Update existing time slot
+        payload.id = selectedTimeSlot.value.id;
+
+        await fieldService.updateFieldPrice(payload);
+        showNotification({
+          title: "Thông báo",
+          message: "Khung giờ đã được cập nhật",
+          type: "success",
+        });
+      } else {
+        // Add new time slot
+        await fieldService.addFieldPrice(payload);
+        showNotification({
+          title: "Thông báo",
+          message: "Khung giờ đã được thêm",
+          type: "success",
+        });
+      }
+      fetchFieldDetail();
+    } else {
+      // Nếu chưa có ID sân bóng, kiểm tra xem có đang chỉnh sửa khung giờ hay không
+      if (selectedTimeSlot.value) {
+        // Cập nhật khung giờ trong danh sách
+        const index = field.value.prices.findIndex(
+          (slot) =>
+            slot.start_time === selectedTimeSlot.value.start_time &&
+            slot.end_time === selectedTimeSlot.value.end_time
+        );
+        if (index !== -1) {
+          field.value.prices.splice(index, 1, { ...payload });
+        }
+      } else {
+        // Thêm khung giờ mới vào danh sách
+        field.value.prices.push({ ...payload });
+      }
+      // Sort prices array by start_time
+      field.value.prices.sort((a, b) => {
+        const [aHour, aMinute] = a.start_time.split(":").map(Number);
+        const [bHour, bMinute] = b.start_time.split(":").map(Number);
+
+        return aHour === bHour ? aMinute - bMinute : aHour - bHour;
+      });
+    }
+
+    closeDialog();
+  } catch (error) {
+    console.error("Lỗi khi lưu khung giờ:", error);
+  }
 };
 
 const editTimeSlot = (item) => {
@@ -334,12 +342,10 @@ const editTimeSlot = (item) => {
 };
 
 const deleteTimeSlot = async (item) => {
-  // Xử lý xóa khung giờ từ cơ sở dữ liệu
   const confirmDelete = confirm("Bạn có chắc chắn muốn xóa khung giờ này?");
   if (!confirmDelete) return;
 
   if (!route.params.id) {
-    // Tìm vị trí của time slot cần xóa trong mảng prices
     const indexToRemove = field.value.prices.findIndex(
       (slot) =>
         slot.start_time === item.start_time &&
@@ -347,7 +353,6 @@ const deleteTimeSlot = async (item) => {
         slot.price === item.price
     );
 
-    // Nếu tìm thấy, xóa phần tử khỏi mảng
     if (indexToRemove !== -1) {
       field.value.prices.splice(indexToRemove, 1);
       showNotification({
@@ -355,22 +360,26 @@ const deleteTimeSlot = async (item) => {
         message: "Khung giờ đã được xóa",
         type: "success",
       });
-      console.log("Delete time slot locally");
-    } else {
-      console.log("Không tìm thấy time slot để xóa");
     }
 
+    // Sort prices array by start_time
+    field.value.prices.sort((a, b) => {
+      const [aHour, aMinute] = a.start_time.split(":").map(Number);
+      const [bHour, bMinute] = b.start_time.split(":").map(Number);
+
+      return aHour === bHour ? aMinute - bMinute : aHour - bHour;
+    });
     return;
   }
 
   try {
-    await fieldService.deleteFieldPrice(item.id); // Xóa từ DB theo ID
+    await fieldService.deleteFieldPrice(item.id);
     showNotification({
       title: "Thông báo",
       message: "Khung giờ đã được xóa",
       type: "success",
     });
-    fetchFieldDetail(); // Cập nhật lại chi tiết sân
+    fetchFieldDetail();
   } catch (error) {
     console.error("Lỗi khi xóa khung giờ:", error);
   }
@@ -402,7 +411,7 @@ onMounted(fetchFieldDetail);
 <style scoped>
 .schedule-board {
   display: grid;
-  grid-template-columns: repeat(36, 1fr);
+  grid-template-columns: repeat(34, 1fr);
   grid-gap: 0.5px;
 }
 .time-slot {
@@ -413,7 +422,7 @@ onMounted(fetchFieldDetail);
 }
 .schedule-timeline {
   display: grid;
-  grid-template-columns: repeat(18, 1fr);
+  grid-template-columns: repeat(17, 1fr);
   grid-gap: 0.5px;
 }
 .time-line {

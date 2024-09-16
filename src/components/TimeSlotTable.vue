@@ -21,7 +21,7 @@ const props = defineProps({
 const emit = defineEmits(["edit", "delete"]);
 
 const headers = [
-  { key: "start_time", title: "Start Time" , sortable: false, class:"t-h4"},
+  { key: "start_time", title: "Start Time" , sortable: false},
   { key: "end_time", title: "End Time" , sortable: false},
   { key: "price", title: "Price (VND)" , sortable: false},
   { key: "actions", title: "Actions", align: "center" , sortable: false},
