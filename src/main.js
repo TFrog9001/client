@@ -27,7 +27,7 @@ const vuetify = createVuetify({
     directives,
 });
 app.use(ElementPlus);
-app.use(vuetify); // Sử dụng Vuetify
+app.use(vuetify); 
 
 // Mount the app
 app.mount('#app');

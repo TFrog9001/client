@@ -42,7 +42,8 @@ const router = useRouter();
 
 const fetchFields = async () => {
   try {
-    fields.value = await fieldService.getFields();
+    const {data} = await fieldService.getFields();
+    fields.value = data;
   } catch (error) {
     console.error("Lỗi khi lấy danh sách sân:", error);
   }

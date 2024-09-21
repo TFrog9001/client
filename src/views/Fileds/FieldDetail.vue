@@ -44,29 +44,23 @@
   <hr class="mb-4" style="border: 1px black solid" />
 
   <v-row>
-    <!-- Nút mở modal để thêm khung giờ -->
     <v-col cols="12">
       <v-btn color="primary" @click="openDialog">+ Add Time Slot</v-btn>
     </v-col>
 
-    <!-- Modal nhập khung giờ mới -->
     <v-dialog v-model="dialog" max-width="600">
       <v-card>
-        <v-card-title v-if="selectedTimeSlot" class="text-h6">
-          Chỉnh sửa khung giờ
+        <v-card-title class="text-h6">
+          {{ selectedTimeSlot ? "Chỉnh sửa khung giờ" : "Thêm mới khung giờ" }}
         </v-card-title>
-
-        <v-card-title v-else class="text-h6"> Thêm mới khung giờ </v-card-title>
 
         <v-divider></v-divider>
 
         <v-card-text>
-          <!-- Time Slot Form -->
           <v-form ref="timeSlotForm">
             <v-row>
-              <!-- Start Time Picker -->
               <v-col cols="6">
-                <label> Start time: </label>
+                <label>Start time:</label>
                 <TimePicker
                   v-model="newTimeSlot.start_time"
                   format="HH:mm"
@@ -80,9 +74,8 @@
                 />
               </v-col>
 
-              <!-- End Time Picker -->
               <v-col cols="6">
-                <label>End Time: </label>
+                <label>End Time:</label>
                 <TimePicker
                   v-model="newTimeSlot.end_time"
                   format="HH:mm"
@@ -96,7 +89,6 @@
                 />
               </v-col>
 
-              <!-- Price Field -->
               <v-col cols="12" class="mb-4">
                 <v-text-field
                   v-model="newTimeSlot.price"
@@ -113,18 +105,15 @@
 
         <v-divider></v-divider>
 
-        <!-- Actions: Save and Cancel buttons -->
         <v-card-actions class="justify-end">
           <v-btn color="secondary" text @click="closeDialog">Cancel</v-btn>
-          <v-btn v-if="selectedTimeSlot" color="primary" @click="saveTimeSlot"
-            >Save</v-btn
-          >
-          <v-btn v-else color="primary" @click="saveTimeSlot">Add</v-btn>
+          <v-btn color="primary" @click="saveTimeSlot">
+            {{ selectedTimeSlot ? "Save" : "Add" }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Bảng hiển thị khung giờ -->
     <v-col cols="12">
       <v-card>
         <v-card-title>Schedule Board</v-card-title>
@@ -133,7 +122,6 @@
           <div class="schedule-timeline">
             <div class="time-line" v-for="hour in 17" :key="hour">
               <span>{{ hour + 5 }}:00</span>
-              <br />
               <span>|</span>
             </div>
           </div>
@@ -154,7 +142,6 @@
       </v-card>
     </v-col>
 
-    <!-- TimeSlotTable Component -->
     <v-col cols="12">
       <TimeSlotTable
         :prices="field.prices"
@@ -183,18 +170,16 @@ const newTimeSlot = ref({ start_time: "", end_time: "", price: 0 });
 const selectedTimeSlot = ref(null);
 const colorPalette = ["blue", "green", "orange", "purple", "teal"];
 
-// Fetch field details or initialize for creating a new field
 const fetchFieldDetail = async () => {
   const id = route.params.id;
   if (id) {
-    // Edit mode - Fetch existing field
     try {
-      field.value = await fieldService.getFieldById(id);
+      const {data} = await fieldService.getFieldById(id);
+      field.value = data;
     } catch (error) {
       console.error("Lỗi khi tải chi tiết sân:", error);
     }
   } else {
-    // Create mode - Initialize empty field
     field.value = {
       name: "",
       type: "",
@@ -204,11 +189,9 @@ const fetchFieldDetail = async () => {
   }
 };
 
-// Save field (Create or Edit)
 const saveField = async () => {
   try {
     if (route.params.id) {
-      // Update existing field
       await fieldService.editField(field.value, route.params.id);
       showNotification({
         title: "Thông báo",
@@ -216,7 +199,6 @@ const saveField = async () => {
         type: "success",
       });
     } else {
-      // Create new field
       const response = await fieldService.addField(field.value);
       showNotification({
         title: "Thông báo",
@@ -230,7 +212,6 @@ const saveField = async () => {
   }
 };
 
-// Delete field (only for existing fields)
 const deleteField = async () => {
   try {
     await fieldService.deleteFieldById(route.params.id);
@@ -245,7 +226,6 @@ const deleteField = async () => {
   }
 };
 
-// Time Slot management
 const openDialog = () => {
   dialog.value = true;
 };
@@ -256,7 +236,6 @@ const closeDialog = () => {
   selectedTimeSlot.value = null;
 };
 
-// Save Time Slot (Add or Edit)
 const saveTimeSlot = async () => {
   if (
     !newTimeSlot.value.start_time ||
@@ -285,7 +264,6 @@ const saveTimeSlot = async () => {
     if (route.params.id) {
       payload.field_id = route.params.id;
       if (selectedTimeSlot.value) {
-        // Update existing time slot
         payload.id = selectedTimeSlot.value.id;
 
         await fieldService.updateFieldPrice(payload);
@@ -295,7 +273,6 @@ const saveTimeSlot = async () => {
           type: "success",
         });
       } else {
-        // Add new time slot
         await fieldService.addFieldPrice(payload);
         showNotification({
           title: "Thông báo",
@@ -305,9 +282,7 @@ const saveTimeSlot = async () => {
       }
       fetchFieldDetail();
     } else {
-      // Nếu chưa có ID sân bóng, kiểm tra xem có đang chỉnh sửa khung giờ hay không
       if (selectedTimeSlot.value) {
-        // Cập nhật khung giờ trong danh sách
         const index = field.value.prices.findIndex(
           (slot) =>
             slot.start_time === selectedTimeSlot.value.start_time &&
@@ -317,71 +292,49 @@ const saveTimeSlot = async () => {
           field.value.prices.splice(index, 1, { ...payload });
         }
       } else {
-        // Thêm khung giờ mới vào danh sách
         field.value.prices.push({ ...payload });
       }
-      // Sort prices array by start_time
+
       field.value.prices.sort((a, b) => {
         const [aHour, aMinute] = a.start_time.split(":").map(Number);
         const [bHour, bMinute] = b.start_time.split(":").map(Number);
-
-        return aHour === bHour ? aMinute - bMinute : aHour - bHour;
+        return aHour - bHour || aMinute - bMinute;
       });
     }
-
-    closeDialog();
   } catch (error) {
     console.error("Lỗi khi lưu khung giờ:", error);
   }
+
+  closeDialog();
 };
 
-const editTimeSlot = (item) => {
-  selectedTimeSlot.value = { ...item };
-  newTimeSlot.value = { ...selectedTimeSlot.value };
-  dialog.value = true;
+const editTimeSlot = (slot) => {
+  newTimeSlot.value = { ...slot };
+  selectedTimeSlot.value = slot;
+  openDialog();
 };
 
-const deleteTimeSlot = async (item) => {
-  const confirmDelete = confirm("Bạn có chắc chắn muốn xóa khung giờ này?");
-  if (!confirmDelete) return;
-
-  if (!route.params.id) {
-    const indexToRemove = field.value.prices.findIndex(
-      (slot) =>
-        slot.start_time === item.start_time &&
-        slot.end_time === item.end_time &&
-        slot.price === item.price
-    );
-
-    if (indexToRemove !== -1) {
-      field.value.prices.splice(indexToRemove, 1);
+const deleteTimeSlot = async (slot) => {
+  if (route.params.id && slot.id) {
+    try {
+      await fieldService.deleteFieldPrice(slot.id);
+      fetchFieldDetail();
       showNotification({
         title: "Thông báo",
         message: "Khung giờ đã được xóa",
         type: "success",
       });
+    } catch (error) {
+      console.error("Lỗi khi xóa khung giờ:", error);
     }
-
-    // Sort prices array by start_time
-    field.value.prices.sort((a, b) => {
-      const [aHour, aMinute] = a.start_time.split(":").map(Number);
-      const [bHour, bMinute] = b.start_time.split(":").map(Number);
-
-      return aHour === bHour ? aMinute - bMinute : aHour - bHour;
-    });
-    return;
-  }
-
-  try {
-    await fieldService.deleteFieldPrice(item.id);
-    showNotification({
-      title: "Thông báo",
-      message: "Khung giờ đã được xóa",
-      type: "success",
-    });
-    fetchFieldDetail();
-  } catch (error) {
-    console.error("Lỗi khi xóa khung giờ:", error);
+  } else {
+    const index = field.value.prices.findIndex(
+      (price) =>
+        price.start_time === slot.start_time && price.end_time === slot.end_time
+    );
+    if (index !== -1) {
+      field.value.prices.splice(index, 1);
+    }
   }
 };
 
@@ -415,7 +368,7 @@ onMounted(fetchFieldDetail);
   grid-gap: 0.5px;
 }
 .time-slot {
-  height: 50px;
+  height: 65px;
   display: block;
   font-size: 14px;
   color: white;
@@ -426,7 +379,8 @@ onMounted(fetchFieldDetail);
   grid-gap: 0.5px;
 }
 .time-line {
-  display: block;
+  display: flex;
   font-size: 14px;
+  flex-direction: column;
 }
 </style>

@@ -5,9 +5,18 @@ const userService = {
     async getUsers() {
         try {
             const response = await api.get('/users');
-            return response.data.users;
+            return response;
         } catch (error) {
             console.error('Có lỗi xảy ra khi lấy danh sách người dùng:', error);
+            throw error;
+        }
+    },
+    async getCustomers() {
+        try {
+            const response = await api.get('/users/customers');
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi lấy danh sách khách hàng:', error);
             throw error;
         }
     },
@@ -16,7 +25,7 @@ const userService = {
     async getUserById(id) {
         try {
             const response = await api.get(`/users/${id}`);
-            return response.data.user;
+            return response;
         } catch (error) {
             console.error(`Có lỗi xảy ra khi lấy người dùng với ID ${id}:`, error);
             throw error;
@@ -27,7 +36,7 @@ const userService = {
     async addUser(user) {
         try {
             const response = await api.post('/users', user);
-            return response.data.user;
+            return response;
         } catch (error) {
             console.error('Có lỗi xảy ra khi thêm người dùng:', error);
             throw error;
@@ -38,7 +47,7 @@ const userService = {
     async editUser(user, id) {
         try {
             const response = await api.put(`/users/${id}`, user);
-            return response.data.user;
+            return response;
         } catch (error) {
             console.error('Có lỗi xảy ra khi chỉnh sửa người dùng:', error);
             throw error;
@@ -49,7 +58,7 @@ const userService = {
     async deleteUserById(id) {
         try {
             const response = await api.delete(`/users/${id}`);
-            return response.data.user;
+            return response;
         } catch (error) {
             console.error(`Có lỗi xảy ra khi xóa người dùng với ID ${id}:`, error);
             throw error;

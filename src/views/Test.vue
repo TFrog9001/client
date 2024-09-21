@@ -1,191 +1,368 @@
 <template>
-  <div>
-    <!-- Hiển thị thông tin sân -->
-    <h2>Thông tin sân: {{ field.name }}</h2>
-    <p>Vị trí: {{ field.location }}</p>
-    <p>Loại sân: {{ field.type }}</p>
-    <p>Trạng thái: {{ field.status }}</p>
+  <h1 class="text-h4 text-center mb-6">Soccer Field Schedule</h1>
+  <v-card class="mb-4 pa-4">
+    <v-row>
+      <v-col cols="12" sm="4">
+        <v-date-input
+          class="date-picker"
+          v-model="selectedDate"
+          label="Select Date"
+          prepend-icon="mdi-calendar"
+          clearable
+        ></v-date-input>
+      </v-col>
+      <v-col cols="12" sm="4">
+        <v-select
+          v-model="selectedField"
+          :items="fieldOptions"
+          label="Select Field"
+          item-title="name"
+          item-value="id"
+          clearable
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="4">
+        <v-text-field
+          v-model="customerNameFilter"
+          label="Customer Name"
+          clearable
+        ></v-text-field>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col cols="12" class="d-flex justify-space-between">
+        <v-btn @click="previousDay">Previous Day</v-btn>
+        <v-btn @click="setToday">Today</v-btn>
+        <v-btn @click="nextDay">Next Day</v-btn>
+      </v-col>
+    </v-row>
+  </v-card>
 
-    <h3>Giá theo khoảng thời gian:</h3>
-    <ul>
-      <li v-for="(price, index) in field.prices" :key="index">
-        {{ formatTime(price.start_time) }} - {{ formatTime(price.end_time) }}:
-        {{ formatPrice(price.price) }} VNĐ ({{ price.day_type }})
-      </li>
-    </ul>
+  <v-card>
+    <v-table fixed-header height="800px">
+      <thead>
+        <tr>
+          <th class="text-left">Time</th>
+          <th
+            v-for="field in filteredFields"
+            :key="field.id"
+            class="text-center"
+          >
+            {{ field.name }}
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(time, index) in timeSlots" :key="time">
+          <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
+          <td v-else class="time-line"></td>
+          <td
+            v-for="field in filteredFields"
+            :key="`${field.id}-${time}`"
+            class="pa-1"
+          >
+            <template v-if="isBookingStart(field.id, index)">
+              <div
+                class="booking-block"
+                :style="{ height: `${getBookingHeight(field.id, index)}px` }"
+              >
+                <div class="booking-content">
+                  <p class="text-subtitle-2">
+                    {{ getBookingForSlot(field.id, index).user.name }}
+                  </p>
+                  <p class="text-caption">
+                    {{
+                      getBookingForSlot(field.id, index).start_time.slice(0, 5)
+                    }}
+                    -
+                    {{
+                      getBookingForSlot(field.id, index).end_time.slice(0, 5)
+                    }}
+                  </p>
+                  <p class="text-caption">
+                    ${{ getBookingForSlot(field.id, index).field_price }}
+                  </p>
+                  <!-- <v-btn
+                    color="error"
+                    size="small"
+                    @click="handleCancelBooking(field.id, index)"
+                  >
+                    Cancel
+                  </v-btn> -->
+                </div>
+              </div>
+            </template>
+            <v-btn
+              v-else-if="!getBookingForSlot(field.id, index)"
+              block
+              @click="handleOpenBooking(field.id, index)"
+            >
+            </v-btn>
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+  </v-card>
 
-    <!-- Thêm form thêm giá mới -->
-    <form @submit.prevent="addTimeRange">
-      <input
-        v-model="newRange.startTime"
-        type="time"
-        placeholder="Thời gian bắt đầu"
-        required
-      />
-      <input
-        v-model="newRange.endTime"
-        type="time"
-        placeholder="Thời gian kết thúc"
-        required
-      />
-      <input
-        v-model.number="newRange.price"
-        type="number"
-        placeholder="Giá"
-        required
-      />
-      <select v-model="newRange.dayType" required>
-        <option value="Ngày thường">Ngày thường</option>
-        <option value="Cuối tuần">Cuối tuần</option>
-      </select>
-      <button type="submit">Thêm khoảng thời gian</button>
-    </form>
-  </div>
+  <v-dialog v-model="isDialogOpen" max-width="500px">
+    <v-card>
+      <v-card-title id="title-model">Book Soccer Field</v-card-title>
+      <v-card-text>
+        <v-form @submit.prevent="handleBooking">
+          <v-row>
+            <v-col cols="6">
+              <v-text-field
+                v-model="bookingDetails.start_time"
+                label="Start Time"
+                readonly
+              ></v-text-field>
+            </v-col>
+            <v-col cols="6">
+              <v-select
+                v-model="bookingDetails.end_time"
+                :items="availableEndTimes"
+                label="End Time"
+              ></v-select>
+            </v-col>
+          </v-row>
+          <v-text-field
+            v-model="bookingDetails.user.name"
+            label="Customer Name"
+          ></v-text-field>
+          <v-text-field
+            v-model="bookingDetails.user.user_id"
+            label="Customer ID"
+          ></v-text-field>
+          <v-text-field
+            v-model.number="bookingDetails.field_price"
+            label="Price ($)"
+            type="number"
+          ></v-text-field>
+        </v-form>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" @click="handleBooking">Confirm Booking</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import fieldService from "../services/fieldService";
+import bookingService from "../services/bookingService";
+import { VDateInput } from "vuetify/labs/VDateInput";
 
-// Dữ liệu sân bóng
-const field = ref({
-  id: 1,
-  name: "Sân AB1",
-  location: "123 Đường ABC",
-  type: "7",
-  status: "Không hoạt động",
-  created_at: "2024-07-25T14:47:03.000000Z",
-  updated_at: "2024-09-14T13:22:39.000000Z",
-  prices: [
-    {
-      id: 9,
-      field_id: 1,
-      start_time: "06:00:00",
-      end_time: "08:00:00",
-      day_type: "Ngày thường",
-      price: "200000.00",
-      created_at: "2024-09-13T04:47:07.000000Z",
-      updated_at: "2024-09-13T05:14:42.000000Z",
-    },
-    {
-      id: 1,
-      field_id: 1,
-      start_time: "08:00:00",
-      end_time: "10:00:00",
-      day_type: "Ngày thường",
-      price: "500000.00",
-      created_at: "2024-07-25T14:47:03.000000Z",
-      updated_at: "2024-07-25T14:47:03.000000Z",
-    },
-    {
-      id: 2,
-      field_id: 1,
-      start_time: "10:00:00",
-      end_time: "13:00:00",
-      day_type: "Ngày thường",
-      price: "600000.00",
-      created_at: "2024-07-25T14:47:03.000000Z",
-      updated_at: "2024-09-14T13:41:03.000000Z",
-    },
-  ],
+const fields = ref([]);
+const timeSlots = Array.from(
+  { length: 35 },
+  (_, i) =>
+    `${Math.floor(i / 2 + 6)
+      .toString()
+      .padStart(2, "0")}:${i % 2 === 0 ? "00" : "30"}`
+);
+
+const bookings = ref({});
+const isDialogOpen = ref(false);
+const selectedSlot = ref(null);
+const bookingDetails = ref({
+  user: { name: "", user_id: "" },
+  start_time: "",
+  end_time: "",
+  field_price: 0,
 });
 
-// Biến để lưu giá trị của khoảng thời gian mới
-const newRange = ref({
-  startTime: "",
-  endTime: "",
-  price: null,
-  dayType: "Ngày thường",
-});
+const selectedDate = ref(new Date());
+const selectedField = ref(null);
+const customerNameFilter = ref("");
 
-// Hàm để format lại giờ từ định dạng chuỗi
-const formatTime = (time) => {
-  return time.slice(0, 5); // Bỏ giây để hiển thị HH:MM
+const fetchFields = async () => {
+  const { data } = await fieldService.getFields();
+  fields.value = data;
+  bookings.value = data.reduce(
+    (acc, field) => ({
+      ...acc,
+      [field.id]: Array(timeSlots.length).fill(null),
+    }),
+    {}
+  );
 };
 
-// Hàm để format lại giá tiền
-const formatPrice = (price) => {
-  return new Intl.NumberFormat("vi-VN").format(price);
-};
+const fetchBookings = async () => {
+  const booking_date = getLocalDate(selectedDate.value);
+  const { data } = await bookingService.getBookings(booking_date);
 
-// Hàm để thêm khoảng thời gian giá mới
-const addTimeRange = () => {
-  const { startTime, endTime, price, dayType } = newRange.value;
+  // Reset bookings
+  Object.keys(bookings.value).forEach((fieldId) => {
+    bookings.value[fieldId] = Array(timeSlots.length).fill(null);
+  });
 
-  // Kiểm tra tính hợp lệ
-  if (startTime >= endTime || price <= 0) {
-    alert("Khoảng thời gian không hợp lệ hoặc giá phải lớn hơn 0");
-    return;
-  }
+  // Populate bookings
+  data.forEach((booking) => {
+    const fieldId = booking.field_id;
+    const startIndex = timeSlots.findIndex(
+      (time) => time === booking.start_time.slice(0, 5)
+    );
+    const endIndex = timeSlots.findIndex(
+      (time) => time === booking.end_time.slice(0, 5)
+    );
 
-  // Tạo một mảng mới để lưu kết quả sau khi xử lý
-  let newPrices = [];
-
-  // Xử lý việc trùng thời gian
-  field.value.prices.forEach((priceRange) => {
-    // Nếu khoảng thời gian mới không chồng lên khoảng thời gian hiện có
-    if (endTime <= priceRange.start_time || startTime >= priceRange.end_time) {
-      newPrices.push(priceRange); // Thêm khoảng thời gian không bị ảnh hưởng
-    } else {
-      // Nếu khoảng thời gian mới chồng lên, cần chia lại các khoảng thời gian
-      if (startTime > priceRange.start_time) {
-        newPrices.push({
-          ...priceRange,
-          end_time: startTime, // Cắt phần kết thúc của khoảng hiện tại
-        });
-      }
-
-      if (endTime < priceRange.end_time) {
-        newPrices.push({
-          ...priceRange,
-          start_time: endTime, // Cắt phần bắt đầu của khoảng hiện tại
-        });
+    if (startIndex !== -1 && endIndex !== -1) {
+      for (let i = startIndex; i < endIndex; i++) {
+        if (!bookings.value[fieldId]) {
+          bookings.value[fieldId] = Array(timeSlots.length).fill(null);
+        }
+        bookings.value[fieldId][i] = booking;
       }
     }
   });
-
-  // Thêm khoảng thời gian mới vào mảng
-  newPrices.push({
-    id: field.value.prices.length + 1, // Tạo id mới
-    field_id: field.value.id,
-    start_time: startTime,
-    end_time: endTime,
-    day_type: dayType,
-    price: price.toString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  // Sắp xếp lại mảng theo thời gian bắt đầu
-  newPrices.sort((a, b) => {
-    return a.start_time.localeCompare(b.start_time);
-  });
-
-  // Cập nhật danh sách giá với mảng mới đã xử lý
-  field.value.prices = newPrices;
-
-  // Reset form
-  newRange.value = {
-    startTime: "",
-    endTime: "",
-    price: null,
-    dayType: "Ngày thường",
-  };
 };
+
+const handleOpenBooking = (fieldId, index) => {
+  selectedSlot.value = { fieldId, index };
+  bookingDetails.value = {
+    user: { name: "" },
+    start_time: timeSlots[index],
+    end_time: timeSlots[index + 1] || "23:30",
+    field_price: 0,
+  };
+  isDialogOpen.value = true;
+};
+
+const getLocalDate = (date) => {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().substr(0, 10);
+};
+
+const handleBooking = async () => {
+  if (selectedSlot.value) {
+    const bookingData = {
+      field_id: selectedSlot.value.fieldId,
+      booking_date: getLocalDate(selectedDate.value),
+      start_time: bookingDetails.value.start_time,
+      end_time: bookingDetails.value.end_time,
+      user_name: bookingDetails.value.user.name,
+      user_id: bookingDetails.value.user.user_id,
+      field_price: bookingDetails.value.field_price,
+      deposit: 0,
+    };
+
+    await bookingService.createBooking(bookingData);
+    fetchBookings();
+    isDialogOpen.value = false;
+  }
+};
+
+const handleCancelBooking = async (fieldId, index) => {
+  const booking = getBookingForSlot(fieldId, index);
+  if (booking) {
+    await bookingService.deleteBooking(booking.id);
+    fetchBookings();
+  }
+};
+
+const getBookingForSlot = (fieldId, index) => {
+  return bookings.value[fieldId] ? bookings.value[fieldId][index] : null;
+};
+
+const isBookingStart = (fieldId, index) => {
+  const booking = getBookingForSlot(fieldId, index);
+  return booking && booking.start_time.slice(0, 5) === timeSlots[index];
+};
+
+const getBookingHeight = (fieldId, index) => {
+  const booking = getBookingForSlot(fieldId, index);
+  if (booking) {
+    const startIndex = timeSlots.indexOf(booking.start_time.slice(0, 5));
+    const endIndex = timeSlots.indexOf(booking.end_time.slice(0, 5));
+
+    return (endIndex - startIndex) * 48;
+  }
+  return 48;
+};
+
+const availableEndTimes = computed(() => {
+  if (!bookingDetails.value.start_time) return [];
+  const startIndex = timeSlots.indexOf(bookingDetails.value.start_time);
+  return timeSlots.slice(startIndex + 1);
+});
+
+const fieldOptions = computed(() => {
+  console.log(fieldOptions);
+  return [{ id: null, name: "All Fields" }, ...fields.value];
+});
+
+const filteredFields = computed(() => {
+  let filtered = fields.value;
+  if (selectedField.value) {
+    filtered = filtered.filter((field) => field.id === selectedField.value);
+  }
+  return filtered;
+});
+
+const previousDay = () => {
+  const date = new Date(selectedDate.value);
+  date.setDate(date.getDate() - 1);
+  selectedDate.value = date;
+};
+
+const nextDay = () => {
+  const date = new Date(selectedDate.value);
+  date.setDate(date.getDate() + 1);
+  selectedDate.value = date;
+};
+
+const setToday = () => {
+  selectedDate.value = new Date();
+};
+
+watch([selectedDate, selectedField, customerNameFilter], () => {
+  fetchBookings();
+});
+
+onMounted(() => {
+  fetchFields();
+  fetchBookings();
+});
 </script>
 
 <style scoped>
-ul {
-  list-style: none;
-  padding: 0;
+.booking-block {
+  z-index: 2;
+  background-color: #2288dd;
+  padding: 8px;
+  position: absolute;
+  width: 100%;
+  left: 0;
+  top: 0;
 }
-li {
-  margin-bottom: 5px;
+
+.booking-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  align-items: center;
 }
-form {
-  margin-top: 20px;
+
+td {
+  position: relative;
+  height: 48px;
 }
-form input,
-form select {
-  margin-right: 10px;
+
+.time-line {
+  width: 50px;
+}
+
+#title-model {
+  background-color: #00796b;
+  color: white;
+}
+
+.date-picker {
+  z-index: 10;
 }
 </style>
