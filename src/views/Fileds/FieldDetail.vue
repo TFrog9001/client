@@ -3,18 +3,25 @@
     <v-col cols="6">
       <v-card-text>
         <v-form ref="form">
-          <v-text-field v-model="field.name" label="Tên sân" required />
+          <v-text-field
+            v-model="field.name"
+            label="Tên sân"
+            required
+            variant="outlined"
+          />
           <v-select
             v-model="field.type"
             :items="['5', '7', '11']"
             label="Loại sân"
             required
+            variant="outlined"
           />
           <v-select
             v-model="field.status"
             :items="['Hoạt động', 'Đang sửa chữa', 'Không hoạt động']"
             label="Trạng thái"
             required
+            variant="outlined"
           />
         </v-form>
       </v-card-text>
@@ -174,7 +181,7 @@ const fetchFieldDetail = async () => {
   const id = route.params.id;
   if (id) {
     try {
-      const {data} = await fieldService.getFieldById(id);
+      const { data } = await fieldService.getFieldById(id);
       field.value = data;
     } catch (error) {
       console.error("Lỗi khi tải chi tiết sân:", error);
@@ -205,7 +212,8 @@ const saveField = async () => {
         message: "Tạo sân bóng mới thành công",
         type: "success",
       });
-      router.push({ path: `/fields/${response.id}` });
+
+      router.push({ path: `/fields/${response.data.id}` });
     }
   } catch (error) {
     console.error("Lỗi khi lưu sân bóng:", error);

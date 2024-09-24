@@ -1,5 +1,6 @@
 <template>
   <h1 class="text-h4 text-center mb-6">Soccer Field Schedule</h1>
+
   <v-card class="mb-4 pa-4">
     <v-row>
       <v-col cols="12" sm="4">
@@ -9,6 +10,7 @@
           label="Select Date"
           prepend-icon="mdi-calendar"
           clearable
+          variant="outlined"
         ></v-date-input>
       </v-col>
       <v-col cols="12" sm="4">
@@ -18,6 +20,7 @@
           label="Select Field"
           item-title="name"
           item-value="id"
+          variant="outlined"
           clearable
         ></v-select>
       </v-col>
@@ -25,20 +28,27 @@
         <v-text-field
           v-model="customerNameFilter"
           label="Customer Name"
+          variant="outlined"
           clearable
         ></v-text-field>
       </v-col>
     </v-row>
     <v-row>
       <v-col cols="12" class="d-flex justify-space-between">
-        <v-btn @click="previousDay">Previous Day</v-btn>
-        <v-btn @click="setToday">Today</v-btn>
-        <v-btn @click="nextDay">Next Day</v-btn>
+        <v-btn @click="selectedField ? previousWeek() : previousDay()">
+          {{ selectedField ? "Previous Week" : "Previous Day" }}
+        </v-btn>
+        <v-btn @click="setToday">
+          {{ selectedField ? "This Week" : "Today" }}
+        </v-btn>
+        <v-btn @click="selectedField ? nextWeek() : nextDay()">
+          {{ selectedField ? "Next Week" : "Next Day" }}
+        </v-btn>
       </v-col>
     </v-row>
   </v-card>
 
-  <v-card>
+  <v-card v-if="!selectedField">
     <v-table id="table-booking" fixed-header>
       <thead>
         <tr>
@@ -53,11 +63,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="(time, index) in timeSlots"
-          :key="time"
-          v-if="time !== '23:00'"
-        >
+        <tr v-for="(time, index) in timeSlots" :key="time">
           <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
           <td v-else class="time-line"></td>
           <td
@@ -90,7 +96,20 @@
               </div>
             </template>
             <v-btn
-              v-else-if="!getBookingForSlot(field.id, index)"
+              v-else-if="
+                !getBookingForSlot(field.id, index) &&
+                isPastTime(index, selectedDate)
+              "
+              block
+              disabled
+            >
+              -
+            </v-btn>
+            <v-btn
+              v-else-if="
+                !getBookingForSlot(field.id, index) &&
+                !isPastTime(index, selectedDate)
+              "
               block
               @click="handleOpenBooking(field.id, index)"
             >
@@ -102,11 +121,121 @@
     </v-table>
   </v-card>
 
-  <v-dialog v-model="isDialogOpen" max-width="500px">
-    <v-card>
+  <v-card v-else>
+    <v-table id="table-booking-week" fixed-header>
+      <thead>
+        <tr>
+          <th class="text-left">Time</th>
+          <th v-for="day in weekDays" :key="day.date" class="text-center">
+            {{ day.name }} ({{ formatDate(day.date) }})
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(time, index) in timeSlots" :key="time">
+          <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
+          <td v-else class="time-line"></td>
+          <td v-for="day in weekDays" :key="`${day.date}-${time}`" class="pa-1">
+            <template v-if="isBookingStart(selectedField, index, day.date)">
+              <div
+                class="booking-block"
+                :style="{
+                  height: `${getBookingHeight(
+                    selectedField,
+                    index,
+                    day.date
+                  )}px`,
+                }"
+              >
+                <div class="booking-content">
+                  <p class="text-subtitle-2">
+                    {{
+                      getBookingForSlot(selectedField, index, day.date).user
+                        .name
+                    }}
+                  </p>
+                  <p class="text-caption">
+                    {{
+                      getBookingForSlot(
+                        selectedField,
+                        index,
+                        day.date
+                      ).start_time.slice(0, 5)
+                    }}
+                    -
+                    {{
+                      getBookingForSlot(
+                        selectedField,
+                        index,
+                        day.date
+                      ).end_time.slice(0, 5)
+                    }}
+                  </p>
+                  <p class="text-caption">
+                    ${{
+                      getBookingForSlot(selectedField, index, day.date)
+                        .field_price
+                    }}
+                  </p>
+                </div>
+              </div>
+            </template>
+            <v-btn
+              v-else-if="
+                !getBookingForSlot(selectedField, index, day.date) &&
+                isPastTime(index, day.date)
+              "
+              block
+              disabled
+            >
+              -
+            </v-btn>
+            <v-btn
+              v-else-if="
+                !getBookingForSlot(selectedField, index, day.date) &&
+                !isPastTime(index, day.date)
+              "
+              block
+              @click="handleOpenBooking(selectedField, index, day.date)"
+            >
+              +
+            </v-btn>
+          </td>
+        </tr>
+      </tbody>
+    </v-table>
+  </v-card>
+  <!-- Dialog -->
+  <v-dialog v-model="isDialogOpen" max-width="500px" height="800px">
+    <v-card height="100%">
       <v-card-title id="title-model">Book Soccer Field</v-card-title>
-      <v-card-text>
+      <v-card-text class="mt-4">
         <v-form @submit.prevent="handleBooking">
+          <v-row>
+            <!-- Hiển thị ngày booking -->
+            <v-col cols="6">
+              <v-date-input
+                class="date-picker"
+                v-model="selectedDate"
+                label="Select Date"
+                prepend-icon="mdi-calendar"
+                clearable
+                variant="outlined"
+              ></v-date-input>
+            </v-col>
+
+            <!-- Hiển thị tên sân booking -->
+            <v-col cols="6">
+              <v-select
+                v-model="bookingDetails.field"
+                :items="fields"
+                item-title="name"
+                item-value="id"
+                label="Booking Field"
+                variant="outlined"
+              ></v-select>
+            </v-col>
+          </v-row>
           <v-row>
             <v-col cols="6">
               <v-select
@@ -123,14 +252,33 @@
               ></v-select>
             </v-col>
           </v-row>
-          <v-text-field
-            v-model="bookingDetails.user.name"
-            label="Customer Name"
-          ></v-text-field>
-          <v-text-field
-            v-model="bookingDetails.user.user_id"
-            label="Customer ID"
-          ></v-text-field>
+          <v-row>
+            <v-combobox
+              v-model="bookingDetails.user.phone"
+              :items="users"
+              item-title="phone"
+              item-value="id"
+              label="Select or Enter Customer Name"
+              variant="outlined"
+              clearable
+              @update:model-value="onUserSelect"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item class="text-caption" v-bind="props"
+                  >{{ item.raw.name }} - {{ item.raw.email }}</v-list-item
+                >
+                <hr />
+              </template>
+            </v-combobox>
+          </v-row>
+          <v-row>
+            <v-text-field
+              v-model="bookingDetails.user.name"
+              label="Enter Customer Name"
+              variant="outlined"
+              required
+            ></v-text-field>
+          </v-row>
         </v-form>
       </v-card-text>
       <v-card-actions>
@@ -145,7 +293,33 @@
 import { ref, computed, onMounted, watch } from "vue";
 import fieldService from "../../services/fieldService";
 import bookingService from "../../services/bookingService";
+import userService from "../../services/userService";
 import { VDateInput } from "vuetify/labs/VDateInput";
+
+const users = ref([]);
+
+const onUserSelect = (input) => {
+  console.log(input);
+  if (input === null) {
+    return;
+  }
+  
+  const selectedUser = users.value.find((user) => (user.phone === input || user.phone === input.phone));
+  if (selectedUser) {
+    bookingDetails.value.user.name = selectedUser.name;
+    bookingDetails.value.user.user_id = selectedUser.id;
+    // bookingDetails.value.user.phone = selectedUser.phone;
+  } else {
+    // bookingDetails.value.user.phone = input;
+    bookingDetails.value.user.name = "";
+    // bookingDetails.value.user.user_id = "";
+  }
+};
+
+const fetchCustomers = async () => {
+  const { data } = await userService.getCustomers();
+  users.value = data.users;
+};
 
 const fields = ref([]);
 const timeSlots = Array.from(
@@ -160,63 +334,124 @@ const bookings = ref({});
 const isDialogOpen = ref(false);
 const selectedSlot = ref(null);
 const bookingDetails = ref({
-  user: { name: "", user_id: "" },
+  user: { name: "", user_id: "", phone: "" },
   start_time: "",
   end_time: "",
 });
 
 const selectedDate = ref(new Date());
+
 const selectedField = ref(null);
 const customerNameFilter = ref("");
+
+const weekDays = computed(() => {
+  const days = [];
+  const startOfWeek = getStartOfWeek(selectedDate.value);
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(date.getDate() + i);
+    days.push({
+      date: getLocalDate(date),
+      name: date.toLocaleString("default", { weekday: "short" }),
+    });
+  }
+  return days;
+});
+
+const getStartOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+};
 
 const fetchFields = async () => {
   const { data } = await fieldService.getFields();
   fields.value = data;
-  bookings.value = data.reduce(
+  resetBookings();
+};
+
+const resetBookings = () => {
+  bookings.value = fields.value.reduce(
     (acc, field) => ({
       ...acc,
-      [field.id]: Array(timeSlots.length).fill(null),
+      [field.id]: weekDays.value.reduce(
+        (dayAcc, day) => ({
+          ...dayAcc,
+          [day.date]: Array(timeSlots.length).fill(null),
+        }),
+        {}
+      ),
     }),
     {}
   );
 };
 
 const fetchBookings = async () => {
-  const booking_date = getLocalDate(selectedDate.value);
-  const { data } = await bookingService.getBookings(booking_date);
+  resetBookings();
+  if (selectedField.value) {
+    for (const day of weekDays.value) {
+      const { data } = await bookingService.getBookings(day.date);
+      data.forEach((booking) => {
+        if (booking.field_id === selectedField.value) {
+          const startIndex = timeSlots.findIndex(
+            (time) => time === booking.start_time.slice(0, 5)
+          );
+          const endIndex = timeSlots.findIndex(
+            (time) => time === booking.end_time.slice(0, 5)
+          );
 
-  // Reset bookings
-  Object.keys(bookings.value).forEach((fieldId) => {
-    bookings.value[fieldId] = Array(timeSlots.length).fill(null);
-  });
-
-  // Populate bookings
-  data.forEach((booking) => {
-    const fieldId = booking.field_id;
-    const startIndex = timeSlots.findIndex(
-      (time) => time === booking.start_time.slice(0, 5)
-    );
-    const endIndex = timeSlots.findIndex(
-      (time) => time === booking.end_time.slice(0, 5)
-    );
-
-    if (startIndex !== -1 && endIndex !== -1) {
-      for (let i = startIndex; i < endIndex; i++) {
-        if (!bookings.value[fieldId]) {
-          bookings.value[fieldId] = Array(timeSlots.length).fill(null);
+          if (startIndex !== -1 && endIndex !== -1) {
+            for (let i = startIndex; i < endIndex; i++) {
+              if (!bookings.value[selectedField.value][day.date]) {
+                bookings.value[selectedField.value][day.date] = Array(
+                  timeSlots.length
+                ).fill(null);
+              }
+              bookings.value[selectedField.value][day.date][i] = booking;
+            }
+          }
         }
-        bookings.value[fieldId][i] = booking;
-      }
+      });
     }
-  });
+  } else {
+    const { data } = await bookingService.getBookings(
+      getLocalDate(selectedDate.value)
+    );
+    data.forEach((booking) => {
+      const fieldId = booking.field_id;
+      const startIndex = timeSlots.findIndex(
+        (time) => time === booking.start_time.slice(0, 5)
+      );
+      const endIndex = timeSlots.findIndex(
+        (time) => time === booking.end_time.slice(0, 5)
+      );
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        for (let i = startIndex; i < endIndex; i++) {
+          if (!bookings.value[fieldId][getLocalDate(selectedDate.value)]) {
+            bookings.value[fieldId][getLocalDate(selectedDate.value)] = Array(
+              timeSlots.length
+            ).fill(null);
+          }
+          bookings.value[fieldId][getLocalDate(selectedDate.value)][i] =
+            booking;
+        }
+      }
+    });
+  }
 };
 
-const handleOpenBooking = (fieldId, index) => {
-  selectedSlot.value = { fieldId, index };
+const handleOpenBooking = (fieldId, index, date) => {
+  fetchCustomers();
+
+  selectedSlot.value = { fieldId, index, date };
   bookingDetails.value = {
-    user: { name: "" },
+    user: { name: "", user_id: "" },
     start_time: timeSlots[index],
     end_time: timeSlots[index + 1],
+    field: fieldId,
+    booking_date: date || getLocalDate(selectedDate.value),
   };
   isDialogOpen.value = true;
 };
@@ -228,71 +463,51 @@ const getLocalDate = (date) => {
 };
 
 const handleBooking = async () => {
+  console.log(bookingDetails.value);
+
   if (selectedSlot.value) {
     const bookingData = {
-      field_id: selectedSlot.value.fieldId,
-      booking_date: getLocalDate(selectedDate.value),
+      field_id: bookingDetails.value.field,
+      booking_date: selectedSlot.value.date || getLocalDate(selectedDate.value),
       start_time: bookingDetails.value.start_time,
       end_time: bookingDetails.value.end_time,
       user_name: bookingDetails.value.user.name,
       user_id: bookingDetails.value.user.user_id,
+      user_phone: bookingDetails.value.user.phone,
       deposit: 0,
     };
 
-    await bookingService.createBooking(bookingData);
+    if (!bookingData.user_id) {
+    }
+    console.log(bookingData);
+    // await bookingService.createBooking(bookingData);
     fetchBookings();
     isDialogOpen.value = false;
   }
 };
 
-const handleCancelBooking = async (fieldId, index) => {
-  const booking = getBookingForSlot(fieldId, index);
-  if (booking) {
-    await bookingService.deleteBooking(booking.id);
-    fetchBookings();
-  }
+const getBookingForSlot = (fieldId, index, date) => {
+  const bookingDate = date || getLocalDate(selectedDate.value);
+  return bookings.value[fieldId] && bookings.value[fieldId][bookingDate]
+    ? bookings.value[fieldId][bookingDate][index]
+    : null;
 };
 
-const getBookingForSlot = (fieldId, index) => {
-  return bookings.value[fieldId] ? bookings.value[fieldId][index] : null;
-};
-
-const isBookingStart = (fieldId, index) => {
-  const booking = getBookingForSlot(fieldId, index);
+const isBookingStart = (fieldId, index, date) => {
+  const booking = getBookingForSlot(fieldId, index, date);
   return booking && booking.start_time.slice(0, 5) === timeSlots[index];
 };
 
-const getBookingHeight = (fieldId, index) => {
-  const booking = getBookingForSlot(fieldId, index);
+const getBookingHeight = (fieldId, index, date) => {
+  const booking = getBookingForSlot(fieldId, index, date);
   if (booking) {
     const startIndex = timeSlots.indexOf(booking.start_time.slice(0, 5));
     const endIndex = timeSlots.indexOf(booking.end_time.slice(0, 5));
-
     const finalEndIndex = endIndex === -1 ? timeSlots.length : endIndex;
-
-    console.log(startIndex, finalEndIndex);
-
     return (finalEndIndex - startIndex) * 48;
   }
   return 48;
 };
-
-const availableEndTimes = computed(() => {
-  if (!bookingDetails.value.start_time) return [];
-  const startIndex = timeSlots.indexOf(bookingDetails.value.start_time);
-  let endTimes = timeSlots.slice(startIndex + 1);
-
-  // Thêm 23:00 vào cuối danh sách nếu chưa có
-  if (!endTimes.includes("23:00")) {
-    endTimes.push("23:00");
-  }
-
-  return endTimes;
-});
-
-const availableStartTimes = computed(() => {
-  return timeSlots;
-});
 
 const fieldOptions = computed(() => {
   return [{ id: null, name: "All Fields" }, ...fields.value];
@@ -318,9 +533,64 @@ const nextDay = () => {
   selectedDate.value = date;
 };
 
+const previousWeek = () => {
+  const date = new Date(selectedDate.value);
+  date.setDate(date.getDate() - 7);
+  selectedDate.value = date;
+};
+
+const nextWeek = () => {
+  const date = new Date(selectedDate.value);
+  date.setDate(date.getDate() + 7);
+  selectedDate.value = date;
+};
+
 const setToday = () => {
   selectedDate.value = new Date();
 };
+
+// const formatDate = (dateString) => {
+//   const date = new Date(dateString);
+
+//   return date.toLocaleDateString("default", { month: "short", day: "numeric" });
+// };
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+
+  return `${day}/${month}`;
+};
+
+const availableEndTimes = computed(() => {
+  if (!bookingDetails.value.start_time) return [];
+  const startIndex = timeSlots.indexOf(bookingDetails.value.start_time);
+  let endTimes = timeSlots.slice(startIndex + 1);
+
+  // Thêm 23:00 vào cuối danh sách nếu chưa có
+  if (!endTimes.includes("23:00")) {
+    endTimes.push("23:00");
+  }
+
+  return endTimes;
+});
+
+const isPastTime = (slotIndex, date) => {
+  const currentDateTime = new Date();
+  const slotDateTime = new Date(date);
+  const [hour, minute] = timeSlots[slotIndex].split(":");
+
+  slotDateTime.setHours(parseInt(hour));
+  slotDateTime.setMinutes(parseInt(minute));
+
+  return slotDateTime < currentDateTime;
+};
+
+const availableStartTimes = computed(() => {
+  return timeSlots;
+});
 
 watch([selectedDate, selectedField, customerNameFilter], () => {
   fetchBookings();
@@ -355,16 +625,19 @@ onMounted(() => {
   align-items: center;
 }
 
-#table-booking tr {
+#table-booking tr,
+#table-booking-week tr {
   height: 48px;
 }
 
-#table-booking td {
+#table-booking td,
+#table-booking-week td {
   position: relative;
   height: 48px;
 }
 
-#table-booking tbody tr:last-child {
+#table-booking tbody tr:last-child,
+#table-booking-week tbody tr:last-child {
   display: none;
 }
 
@@ -379,5 +652,9 @@ onMounted(() => {
 
 .date-picker {
   z-index: 10;
+}
+
+#table-booking-week td {
+  width: calc(100% / 8);
 }
 </style>
