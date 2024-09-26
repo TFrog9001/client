@@ -21,5 +21,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    "/api/zalopay/callback": {
+      target: "https://mlatbooking.serveo.net",
+      changeOrigin: true,
+    },
   },
 });

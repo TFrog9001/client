@@ -209,14 +209,14 @@
   <v-dialog v-model="isDialogOpen" max-width="500px" height="800px">
     <v-card height="100%">
       <v-card-title id="title-model">Book Soccer Field</v-card-title>
-      <v-card-text>
+      <v-card-text class="mt-4">
         <v-form @submit.prevent="handleBooking">
           <v-row>
             <!-- Hiển thị ngày booking -->
             <v-col cols="6">
               <v-date-input
                 class="date-picker"
-                v-model="selectedDate"
+                v-model="selectedDateForm"
                 label="Select Date"
                 prepend-icon="mdi-calendar"
                 clearable
@@ -233,39 +233,113 @@
                 item-value="id"
                 label="Booking Field"
                 variant="outlined"
-
               ></v-select>
             </v-col>
           </v-row>
           <v-row>
-            <v-col cols="6">
+            <v-col cols="">
               <v-select
                 v-model="bookingDetails.start_time"
                 :items="availableStartTimes"
                 label="Start Time"
+                @update:model-value="calculateEndTime"
               ></v-select>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="">
               <v-select
                 v-model="bookingDetails.end_time"
                 :items="availableEndTimes"
                 label="End Time"
+                @update:model-value="calculateEndTime"
               ></v-select>
             </v-col>
+            <!-- <v-col cols="4">
+              <v-select
+                v-model="bookingDetails.duration"
+                :items="durationOptions"
+                label="Duration"
+                @update:model-value="calculateEndTime"
+              ></v-select>
+            </v-col> -->
           </v-row>
-          <v-text-field
-            v-model="bookingDetails.user.name"
-            label="Customer Name"
-          ></v-text-field>
-          <v-text-field
-            v-model="bookingDetails.user.user_id"
-            label="Customer ID"
-          ></v-text-field>
+          <v-row>
+            <v-col>
+              <v-text-field
+                v-model="bookingDetails.cost"
+                label="Cost"
+                variant="outlined"
+                readonly
+                suffix="VND"
+              >
+              </v-text-field>
+            </v-col>
+            <v-col>
+              <v-text-field
+                v-model="bookingDetails.deposit"
+                label="Deposit"
+                variant="outlined"
+                readonly
+                suffix="VND"
+              >
+              </v-text-field>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-combobox
+              v-model="bookingDetails.user.phone"
+              :items="users"
+              item-title="phone"
+              item-value="id"
+              label="Select or Enter Customer Name"
+              variant="outlined"
+              clearable
+              @update:model-value="onUserSelect"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item class="text-caption" v-bind="props"
+                  >{{ item.raw.name }} - {{ item.raw.email }}</v-list-item
+                >
+                <hr />
+              </template>
+            </v-combobox>
+          </v-row>
+          <v-row>
+            <v-text-field
+              v-model="bookingDetails.user.name"
+              label="Enter Customer Name"
+              variant="outlined"
+              required
+            ></v-text-field>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-radio-group v-model="bookingDetails.paymentMethod" row>
+                <v-subheader>Payment Method</v-subheader>
+                <v-radio label="Full Payment" value="full"></v-radio>
+                <v-radio label="Partial Deposit" value="partial"></v-radio>
+              </v-radio-group>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12">
+              <v-radio-group v-model="bookingDetails.paymentType" row>
+                <v-subheader>Payment Type</v-subheader>
+                <v-radio label="Pay Directly" value="direct"></v-radio>
+                <v-radio
+                  label="Pay Online via ZaloPay"
+                  value="zalopay"
+                ></v-radio>
+              </v-radio-group>
+            </v-col>
+          </v-row>
         </v-form>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="handleBooking">Confirm Booking</v-btn>
+        <v-btn variant="outlined" color="primary" @click="handleBooking">
+          {{ bookingDetails.paymentMethod === "full" ? "Book" : "Pay Deposit" }}
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -275,7 +349,152 @@
 import { ref, computed, onMounted, watch } from "vue";
 import fieldService from "../services/fieldService";
 import bookingService from "../services/bookingService";
+import userService from "../services/userService";
+import paymentSerice from "../services/paymentService";
 import { VDateInput } from "vuetify/labs/VDateInput";
+
+const users = ref([]);
+const durationOptions = [
+  "1 hour",
+  "1.5 hours",
+  "2 hours",
+  "2.5 hours",
+  "3 hours",
+  "3.5 hours",
+  "4 hours",
+  "4.5 hours",
+  "5 hours",
+];
+const formatCurrency = (value) => {
+  const formatter = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  });
+  return formatter.format(value);
+};
+const calculateEndTime = (duration) => {
+  // const startTime = bookingDetails.value.start_time;
+  // const [startHour, startMinute] = startTime.split(":");
+  // let hours = parseFloat(duration);
+  // const endHour = parseInt(startHour) + Math.floor(hours);
+  // const endMinute = parseInt(startMinute) + (hours % 1 === 0.5 ? 30 : 0);
+
+  // let endTime = `${endHour.toString().padStart(2, "0")}:${endMinute
+  //   .toString()
+  //   .padStart(2, "0")}`;
+  // bookingDetails.value.end_time = endTime;
+
+  //
+  const selectedField = fields.value.find(
+    (field) => field.id === bookingDetails.value.field
+  );
+  const fieldPrices = selectedField.prices.filter((price) => {
+    const [startHour, startMinute] = bookingDetails.value.start_time.split(":");
+    const [endHour, endMinute] = bookingDetails.value.end_time.split(":");
+    const start = new Date(0, 0, 0, parseInt(startHour), parseInt(startMinute));
+    const end = new Date(0, 0, 0, parseInt(endHour), parseInt(endMinute));
+    return (
+      (start.getTime() >=
+        new Date(
+          0,
+          0,
+          0,
+          parseInt(price.start_time.split(":")[0]),
+          parseInt(price.start_time.split(":")[1])
+        ).getTime() &&
+        start.getTime() <
+          new Date(
+            0,
+            0,
+            0,
+            parseInt(price.end_time.split(":")[0]),
+            parseInt(price.end_time.split(":")[1])
+          ).getTime()) ||
+      (end.getTime() >
+        new Date(
+          0,
+          0,
+          0,
+          parseInt(price.start_time.split(":")[0]),
+          parseInt(price.start_time.split(":")[1])
+        ).getTime() &&
+        end.getTime() <=
+          new Date(
+            0,
+            0,
+            0,
+            parseInt(price.end_time.split(":")[0]),
+            parseInt(price.end_time.split(":")[1])
+          ).getTime()) ||
+      (start.getTime() >=
+        new Date(
+          0,
+          0,
+          0,
+          parseInt(price.start_time.split(":")[0]),
+          parseInt(price.start_time.split(":")[1])
+        ).getTime() &&
+        end.getTime() <=
+          new Date(
+            0,
+            0,
+            0,
+            parseInt(price.end_time.split(":")[0]),
+            parseInt(price.end_time.split(":")[1])
+          ).getTime())
+    );
+  });
+
+  let totalPrice = 0;
+  for (const price of fieldPrices) {
+    const [startHour, startMinute] = bookingDetails.value.start_time.split(":");
+    const [endHour, endMinute] = bookingDetails.value.end_time.split(":");
+    const actualStart = new Date(
+      0,
+      0,
+      0,
+      parseInt(startHour),
+      parseInt(startMinute)
+    );
+    const actualEnd = new Date(0, 0, 0, parseInt(endHour), parseInt(endMinute));
+
+    const startMinutes = actualStart.getTime();
+    const endMinutes = actualEnd.getTime();
+
+    const minutesBooked = (endMinutes - startMinutes) / (1000 * 60);
+    const priceForThisSlot = (minutesBooked / 60) * parseFloat(price.price);
+    totalPrice += priceForThisSlot;
+  }
+
+  bookingDetails.value.cost = formatCurrency(totalPrice);
+  bookingDetails.value.deposit = formatCurrency(totalPrice * 0.4);
+};
+
+const onUserSelect = (input) => {
+  console.log(input);
+  if (input === null) {
+    return;
+  }
+
+  const selectedUser = users.value.find(
+    (user) => user.phone === input || user.phone === input.phone
+  );
+  if (selectedUser) {
+    bookingDetails.value.user.name = selectedUser.name;
+    bookingDetails.value.user.user_id = selectedUser.id;
+    // bookingDetails.value.user.phone = selectedUser.phone;
+  } else {
+    // bookingDetails.value.user.phone = input;
+    bookingDetails.value.user.user_id = "";
+    bookingDetails.value.user.name = "";
+    // bookingDetails.value.user.user_id = "";
+  }
+};
+
+const fetchCustomers = async () => {
+  const { data } = await userService.getCustomers();
+  users.value = data.users;
+};
 
 const fields = ref([]);
 const timeSlots = Array.from(
@@ -290,12 +509,20 @@ const bookings = ref({});
 const isDialogOpen = ref(false);
 const selectedSlot = ref(null);
 const bookingDetails = ref({
-  user: { name: "", user_id: "" },
+  user: { name: "", user_id: "", phone: "" },
   start_time: "",
   end_time: "",
+  field: null,
+  booking_date: null,
+  duration: null,
+  cost: null,
+  deposit: null,
+  paymentMethod: "full",
+  paymentType: "direct",
 });
 
 const selectedDate = ref(new Date());
+const selectedDateForm = ref(new Date());
 
 const selectedField = ref(null);
 const customerNameFilter = ref("");
@@ -399,6 +626,8 @@ const fetchBookings = async () => {
 };
 
 const handleOpenBooking = (fieldId, index, date) => {
+  fetchCustomers();
+
   selectedSlot.value = { fieldId, index, date };
   bookingDetails.value = {
     user: { name: "", user_id: "" },
@@ -417,20 +646,45 @@ const getLocalDate = (date) => {
 };
 
 const handleBooking = async () => {
+  console.log(bookingDetails.value);
+
   if (selectedSlot.value) {
     const bookingData = {
       field_id: bookingDetails.value.field,
-      booking_date: selectedSlot.value.date || getLocalDate(selectedDate.value),
+      booking_date:
+        selectedSlot.value.date || getLocalDate(selectedDateForm.value),
       start_time: bookingDetails.value.start_time,
       end_time: bookingDetails.value.end_time,
       user_name: bookingDetails.value.user.name,
       user_id: bookingDetails.value.user.user_id,
-      deposit: 0,
+      user_phone: bookingDetails.value.user.phone,
+      deposit: bookingDetails.value.cost * 0.4,
+      payment_method: bookingDetails.value.paymentMethod,
+      payment_type: bookingDetails.value.paymentType,
     };
 
     console.log(bookingData);
-    
-    await bookingService.createBooking(bookingData);
+    if (bookingDetails.value.paymentType === "zalopay") {
+      try {
+        const zaloPayResult = await paymentSerice.createZalopay(bookingData);
+        console.log(zaloPayResult);
+        const qr_url = zaloPayResult.data.zalopay.order_url;
+        window.open(qr_url, '_blank', 'width=500,height=600');
+      } catch (error) {
+        console.error("Error creating ZaloPay payment:", error);
+      }
+      // const zaloPayResult = await paymentSerice.createZalopay(bookingData);
+      // console.log(zaloPayResult);
+      // console.log(zaloPayResult.data);
+      // console.log(zaloPayResult.data.zalopay.order_url);
+    } else {
+      // Proceed with direct booking
+      try {
+        // await bookingService.createBooking(bookingData);
+      } catch (error) {
+        console.error("Error creating booking:", error);
+      }
+    }
     fetchBookings();
     isDialogOpen.value = false;
   }
@@ -605,6 +859,6 @@ onMounted(() => {
 }
 
 #table-booking-week td {
-  width: calc(100% / 8); /* 7 days + 1 time column */
+  width: calc(100% / 8);
 }
 </style>
