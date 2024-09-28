@@ -74,11 +74,22 @@
             <template v-if="isBookingStart(field.id, index)">
               <div
                 class="booking-block"
+                :class="{
+                  'status-paid':
+                    getBookingForSlot(field.id, index).status ===
+                    'Đã thanh toán',
+                  'status-booked':
+                    getBookingForSlot(field.id, index).status === 'Đã đặt',
+                  'status-deposit':
+                    getBookingForSlot(field.id, index).status === 'Đã cọc',
+                  'status-cancelled':
+                    getBookingForSlot(field.id, index).status === 'Hủy',
+                }"
                 :style="{ height: `${getBookingHeight(field.id, index)}px` }"
               >
                 <div class="booking-content">
                   <p class="text-subtitle-2">
-                    {{ getBookingForSlot(field.id, index).user.name }}
+                    {{ getBookingForSlot(field.id, index).user.name + " - " + getBookingForSlot(field.id, index).user.phone  }}
                   </p>
                   <p class="text-caption">
                     {{
@@ -90,7 +101,11 @@
                     }}
                   </p>
                   <p class="text-caption">
-                    {{ formatCurrency(getBookingForSlot(field.id, index).field_price) }}
+                    {{
+                      formatCurrency(
+                        getBookingForSlot(field.id, index).field_price
+                      )
+                    }}
                   </p>
                   <p class="text-caption">
                     {{ getBookingForSlot(field.id, index).status }}
@@ -142,6 +157,20 @@
             <template v-if="isBookingStart(selectedField, index, day.date)">
               <div
                 class="booking-block"
+                :class="{
+                  'status-paid':
+                    getBookingForSlot(selectedField, index, day.date).status ===
+                    'Đã thanh toán',
+                  'status-booked':
+                    getBookingForSlot(selectedField, index, day.date).status ===
+                    'Đã đặt',
+                  'status-deposit':
+                    getBookingForSlot(selectedField, index, day.date).status ===
+                    'Đã cọc',
+                  'status-cancelled':
+                    getBookingForSlot(selectedField, index, day.date).status ===
+                    'Hủy',
+                }"
                 :style="{
                   height: `${getBookingHeight(
                     selectedField,
@@ -154,7 +183,9 @@
                   <p class="text-subtitle-2">
                     {{
                       getBookingForSlot(selectedField, index, day.date).user
-                        .name
+                        .name + " - " + 
+                        getBookingForSlot(selectedField, index, day.date).user
+                        .phone  
                     }}
                   </p>
                   <p class="text-caption">
@@ -175,15 +206,16 @@
                     }}
                   </p>
                   <p class="text-caption">
-                    ${{
-                      getBookingForSlot(selectedField, index, day.date)
-                        .field_price
+                    {{
+                      formatCurrency(
+                        getBookingForSlot(selectedField, index, day.date)
+                          .field_price
+                      )
                     }}
                   </p>
                   <p class="text-caption">
                     {{
-                      getBookingForSlot(selectedField, index, day.date)
-                        .status
+                      getBookingForSlot(selectedField, index, day.date).status
                     }}
                   </p>
                 </div>
@@ -263,14 +295,6 @@
                 @update:model-value="calculateEndTime"
               ></v-select>
             </v-col>
-            <!-- <v-col cols="4">
-              <v-select
-                v-model="bookingDetails.duration"
-                :items="durationOptions"
-                label="Duration"
-                @update:model-value="calculateEndTime"
-              ></v-select>
-            </v-col> -->
           </v-row>
           <v-row>
             <v-col>
@@ -368,11 +392,37 @@
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn variant="outlined" color="primary" @click="handleBooking">
-          <span v-if="bookingDetails.paymentMethod === 'full' && bookingDetails.paymentType === 'direct'">Cash payment!</span>
-          <span v-if="bookingDetails.paymentMethod === 'full' && bookingDetails.paymentType !== 'direct'">Online payment!</span>
-          <span v-else-if="bookingDetails.paymentMethod === 'partial' && bookingDetails.paymentType === 'direct'">cash deposit</span>
-          <span v-else-if="bookingDetails.paymentMethod === 'partial' && bookingDetails.paymentType !== 'direct'">Online deposit</span>
-          <span v-else-if="bookingDetails.paymentMethod === 'none'">Booking</span>
+          <span
+            v-if="
+              bookingDetails.paymentMethod === 'full' &&
+              bookingDetails.paymentType === 'direct'
+            "
+            >Cash payment!</span
+          >
+          <span
+            v-if="
+              bookingDetails.paymentMethod === 'full' &&
+              bookingDetails.paymentType !== 'direct'
+            "
+            >Online payment!</span
+          >
+          <span
+            v-else-if="
+              bookingDetails.paymentMethod === 'partial' &&
+              bookingDetails.paymentType === 'direct'
+            "
+            >cash deposit</span
+          >
+          <span
+            v-else-if="
+              bookingDetails.paymentMethod === 'partial' &&
+              bookingDetails.paymentType !== 'direct'
+            "
+            >Online deposit</span
+          >
+          <span v-else-if="bookingDetails.paymentMethod === 'none'"
+            >Booking</span
+          >
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -386,6 +436,7 @@ import bookingService from "../../services/bookingService";
 import userService from "../../services/userService";
 import paymentService from "../../services/paymentService";
 import { VDateInput } from "vuetify/labs/VDateInput";
+import { showNotification } from "../../utils/notification";
 
 // State variables
 const users = ref([]);
@@ -420,19 +471,6 @@ const timeSlots = Array.from(
       .toString()
       .padStart(2, "0")}:${i % 2 === 0 ? "00" : "30"}`
 );
-
-// Duration options
-const durationOptions = [
-  "1 hour",
-  "1.5 hours",
-  "2 hours",
-  "2.5 hours",
-  "3 hours",
-  "3.5 hours",
-  "4 hours",
-  "4.5 hours",
-  "5 hours",
-];
 
 // Format currency
 const formatCurrency = (value) => {
@@ -475,7 +513,13 @@ const calculateEndTime = (duration) => {
   for (const price of fieldPrices) {
     const [startHour, startMinute] = bookingDetails.value.start_time.split(":");
     const [endHour, endMinute] = bookingDetails.value.end_time.split(":");
-    const actualStart=new Date(0,0,0,parseInt(startHour),parseInt(startMinute));
+    const actualStart = new Date(
+      0,
+      0,
+      0,
+      parseInt(startHour),
+      parseInt(startMinute)
+    );
     const actualEnd = new Date(0, 0, 0, parseInt(endHour), parseInt(endMinute));
 
     const startMinutes = actualStart.getTime();
@@ -646,19 +690,45 @@ const handleBooking = async () => {
         console.log(bookingData);
         const zaloPayResult = await paymentService.createZalopay(bookingData);
         const qr_url = zaloPayResult.data.zalopay.order_url;
-        window.open(qr_url, "_blank", "width=500,height=600");
+
+        const popup = window.open(qr_url, "_blank", "width=500,height=600");
+
+        // Check if the popup was successfully created
+        if (popup) {
+          const timer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(timer);
+              // Continue with the next steps after the window is closed
+              fetchBookings();
+              isDialogOpen.value = false;
+
+              showNotification({
+                title: "Thông báo",
+                message: "Đã tạo booking thành công",
+                type: "success",
+              });
+            }
+          }, 500); // Check every 500ms
+        } else {
+          console.error("Popup was blocked or failed to open.");
+        }
       } catch (error) {
         console.error("Error creating ZaloPay payment:", error);
       }
     } else {
       try {
         await bookingService.createBooking(bookingData);
+        fetchBookings();
+        isDialogOpen.value = false;
+        showNotification({
+          title: "Thông báo",
+          message: "Đã tạo booking thành công",
+          type: "success",
+        });
       } catch (error) {
         console.error("Error creating booking:", error);
       }
     }
-    fetchBookings();
-    isDialogOpen.value = false;
   }
 };
 
@@ -808,7 +878,6 @@ onMounted(() => {
 <style scoped>
 .booking-block {
   z-index: 2;
-  background-color: #2288dd;
   padding: 4px;
   position: absolute;
   width: 100%;
@@ -816,16 +885,49 @@ onMounted(() => {
   top: 0;
   border-radius: 5px;
   border: 1px solid #ccc !important;
+  /* border: 1px solid transparent; */
   margin-left: 1px;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  height: auto;
+}
+
+.booking-block:hover {
+  transform: scale(1.02); 
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); 
+  overflow: visible;
+  height: calc(100% + 144px) !important;
 }
 
 .booking-content {
   height: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: space-start;
   flex-wrap: nowrap;
   align-items: center;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #1f1e1e;
+}
+
+/* Color booking status */
+.status-paid {
+  background-color: lightgreen; /*"Đã thanh toán" */
+}
+
+.status-booked {
+  background-color: lightblue; /*"Đã đặt" */
+}
+
+.status-deposit {
+  background-color: lightyellow; /*"Đã cọc" */
+}
+
+.status-cancelled {
+  background-color: lightcoral; /* Color for "Hủy" */
+}
+#table-booking, #table-booking-week {
+  height: 1800px;
+  overflow: hidden;
 }
 
 #table-booking tr,
