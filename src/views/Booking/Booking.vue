@@ -90,7 +90,10 @@
                     }}
                   </p>
                   <p class="text-caption">
-                    ${{ getBookingForSlot(field.id, index).field_price }}
+                    {{ formatCurrency(getBookingForSlot(field.id, index).field_price) }}
+                  </p>
+                  <p class="text-caption">
+                    {{ getBookingForSlot(field.id, index).status }}
                   </p>
                 </div>
               </div>
@@ -177,6 +180,12 @@
                         .field_price
                     }}
                   </p>
+                  <p class="text-caption">
+                    {{
+                      getBookingForSlot(selectedField, index, day.date)
+                        .status
+                    }}
+                  </p>
                 </div>
               </div>
             </template>
@@ -216,7 +225,7 @@
             <v-col cols="6">
               <v-date-input
                 class="date-picker"
-                v-model="selectedDate"
+                v-model="selectedDateForm"
                 label="Select Date"
                 prepend-icon="mdi-calendar"
                 clearable
@@ -233,23 +242,56 @@
                 item-value="id"
                 label="Booking Field"
                 variant="outlined"
+                @update:model-value="calculateEndTime"
               ></v-select>
             </v-col>
           </v-row>
           <v-row>
-            <v-col cols="6">
+            <v-col cols="">
               <v-select
                 v-model="bookingDetails.start_time"
                 :items="availableStartTimes"
                 label="Start Time"
+                @update:model-value="calculateEndTime"
               ></v-select>
             </v-col>
-            <v-col cols="6">
+            <v-col cols="">
               <v-select
                 v-model="bookingDetails.end_time"
                 :items="availableEndTimes"
                 label="End Time"
+                @update:model-value="calculateEndTime"
               ></v-select>
+            </v-col>
+            <!-- <v-col cols="4">
+              <v-select
+                v-model="bookingDetails.duration"
+                :items="durationOptions"
+                label="Duration"
+                @update:model-value="calculateEndTime"
+              ></v-select>
+            </v-col> -->
+          </v-row>
+          <v-row>
+            <v-col>
+              <v-text-field
+                v-model="bookingDetails.cost"
+                label="Cost"
+                variant="outlined"
+                readonly
+                suffix="VND"
+              >
+              </v-text-field>
+            </v-col>
+            <v-col>
+              <v-text-field
+                v-model="bookingDetails.deposit"
+                label="Deposit"
+                variant="outlined"
+                readonly
+                suffix="VND"
+              >
+              </v-text-field>
             </v-col>
           </v-row>
           <v-row>
@@ -264,9 +306,15 @@
               @update:model-value="onUserSelect"
             >
               <template v-slot:item="{ props, item }">
-                <v-list-item class="text-caption" v-bind="props"
-                  >{{ item.raw.name }} - {{ item.raw.email }}</v-list-item
-                >
+                <v-list-item class="text-caption" v-bind="props">
+                  <v-icon
+                    class="me-2"
+                    v-if="item.raw.vip === '1'"
+                    color="amber-lighten-1"
+                    icon="mdi-star"
+                  ></v-icon>
+                  {{ item.raw.name }} - {{ item.raw.email }}
+                </v-list-item>
                 <hr />
               </template>
             </v-combobox>
@@ -276,14 +324,56 @@
               v-model="bookingDetails.user.name"
               label="Enter Customer Name"
               variant="outlined"
-              required
             ></v-text-field>
+          </v-row>
+          <v-row>
+            <v-col cols="12">
+              <v-radio-group v-model="bookingDetails.paymentMethod" row>
+                <p>Payment Method</p>
+                <v-radio label="Full Payment" value="full"></v-radio>
+                <v-radio label="Partial Deposit" value="partial"></v-radio>
+                <v-radio
+                  v-if="bookingDetails.user.vip === '1'"
+                  label="None payment (just for V.I.P)"
+                  value="none"
+                ></v-radio>
+              </v-radio-group>
+            </v-col>
+          </v-row>
+
+          <v-row v-if="bookingDetails.paymentMethod !== 'none'">
+            <v-col cols="12">
+              <v-radio-group v-model="bookingDetails.paymentType" row>
+                <p>Payment Type</p>
+                <v-radio label="Pay Directly" value="direct"></v-radio>
+                <v-radio value="zalopay">
+                  <template v-slot:label>
+                    <img
+                      src="@/assets/images/1715337285_zNBo0.png"
+                      alt="ZaloPay Logo"
+                      style="
+                        height: 50px;
+                        margin-right: 8px;
+                        filter: contrast(210%) brightness(90%);
+                      "
+                    />
+                    Pay Online via ZaloPay
+                  </template>
+                </v-radio>
+              </v-radio-group>
+            </v-col>
           </v-row>
         </v-form>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="handleBooking">Confirm Booking</v-btn>
+        <v-btn variant="outlined" color="primary" @click="handleBooking">
+          <span v-if="bookingDetails.paymentMethod === 'full' && bookingDetails.paymentType === 'direct'">Cash payment!</span>
+          <span v-if="bookingDetails.paymentMethod === 'full' && bookingDetails.paymentType !== 'direct'">Online payment!</span>
+          <span v-else-if="bookingDetails.paymentMethod === 'partial' && bookingDetails.paymentType === 'direct'">cash deposit</span>
+          <span v-else-if="bookingDetails.paymentMethod === 'partial' && bookingDetails.paymentType !== 'direct'">Online deposit</span>
+          <span v-else-if="bookingDetails.paymentMethod === 'none'">Booking</span>
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -294,34 +384,35 @@ import { ref, computed, onMounted, watch } from "vue";
 import fieldService from "../../services/fieldService";
 import bookingService from "../../services/bookingService";
 import userService from "../../services/userService";
+import paymentService from "../../services/paymentService";
 import { VDateInput } from "vuetify/labs/VDateInput";
 
+// State variables
 const users = ref([]);
-
-const onUserSelect = (input) => {
-  console.log(input);
-  if (input === null) {
-    return;
-  }
-  
-  const selectedUser = users.value.find((user) => (user.phone === input || user.phone === input.phone));
-  if (selectedUser) {
-    bookingDetails.value.user.name = selectedUser.name;
-    bookingDetails.value.user.user_id = selectedUser.id;
-    // bookingDetails.value.user.phone = selectedUser.phone;
-  } else {
-    // bookingDetails.value.user.phone = input;
-    bookingDetails.value.user.name = "";
-    // bookingDetails.value.user.user_id = "";
-  }
-};
-
-const fetchCustomers = async () => {
-  const { data } = await userService.getCustomers();
-  users.value = data.users;
-};
-
 const fields = ref([]);
+const bookings = ref({});
+const isDialogOpen = ref(false);
+const selectedSlot = ref(null);
+const selectedDate = ref(new Date());
+const selectedDateForm = ref(new Date());
+const selectedField = ref(null);
+const customerNameFilter = ref("");
+
+// Booking details
+const bookingDetails = ref({
+  user: { name: "", user_id: "", phone: "", email: "", vip: "" },
+  start_time: "",
+  end_time: "",
+  field: null,
+  booking_date: null,
+  duration: null,
+  cost: null,
+  deposit: null,
+  paymentMethod: "full",
+  paymentType: "direct",
+});
+
+// Time slots
 const timeSlots = Array.from(
   { length: 35 },
   (_, i) =>
@@ -330,47 +421,112 @@ const timeSlots = Array.from(
       .padStart(2, "0")}:${i % 2 === 0 ? "00" : "30"}`
 );
 
-const bookings = ref({});
-const isDialogOpen = ref(false);
-const selectedSlot = ref(null);
-const bookingDetails = ref({
-  user: { name: "", user_id: "", phone: "" },
-  start_time: "",
-  end_time: "",
-});
+// Duration options
+const durationOptions = [
+  "1 hour",
+  "1.5 hours",
+  "2 hours",
+  "2.5 hours",
+  "3 hours",
+  "3.5 hours",
+  "4 hours",
+  "4.5 hours",
+  "5 hours",
+];
 
-const selectedDate = ref(new Date());
-
-const selectedField = ref(null);
-const customerNameFilter = ref("");
-
-const weekDays = computed(() => {
-  const days = [];
-  const startOfWeek = getStartOfWeek(selectedDate.value);
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(startOfWeek);
-    date.setDate(date.getDate() + i);
-    days.push({
-      date: getLocalDate(date),
-      name: date.toLocaleString("default", { weekday: "short" }),
-    });
-  }
-  return days;
-});
-
-const getStartOfWeek = (date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+// Format currency
+const formatCurrency = (value) => {
+  const formatter = new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  });
+  return formatter.format(value);
 };
 
+// Calculate end time and costs
+const calculateEndTime = (duration) => {
+  const selectedField = fields.value.find(
+    (field) => field.id === bookingDetails.value.field
+  );
+
+  const fieldPrices = selectedField.prices.filter((price) => {
+    const [startHour, startMinute] = bookingDetails.value.start_time.split(":");
+    const [endHour, endMinute] = bookingDetails.value.end_time.split(":");
+    const start = new Date(0, 0, 0, parseInt(startHour), parseInt(startMinute));
+    const end = new Date(0, 0, 0, parseInt(endHour), parseInt(endMinute));
+
+    return (
+      (start.getTime() >=
+        new Date(0, 0, 0, ...parseTime(price.start_time)).getTime() &&
+        start.getTime() <
+          new Date(0, 0, 0, ...parseTime(price.end_time)).getTime()) ||
+      (end.getTime() >
+        new Date(0, 0, 0, ...parseTime(price.start_time)).getTime() &&
+        end.getTime() <=
+          new Date(0, 0, 0, ...parseTime(price.end_time)).getTime()) ||
+      (start.getTime() >=
+        new Date(0, 0, 0, ...parseTime(price.start_time)).getTime() &&
+        end.getTime() <=
+          new Date(0, 0, 0, ...parseTime(price.end_time)).getTime())
+    );
+  });
+
+  let totalPrice = 0;
+  for (const price of fieldPrices) {
+    const [startHour, startMinute] = bookingDetails.value.start_time.split(":");
+    const [endHour, endMinute] = bookingDetails.value.end_time.split(":");
+    const actualStart=new Date(0,0,0,parseInt(startHour),parseInt(startMinute));
+    const actualEnd = new Date(0, 0, 0, parseInt(endHour), parseInt(endMinute));
+
+    const startMinutes = actualStart.getTime();
+    const endMinutes = actualEnd.getTime();
+
+    const minutesBooked = (endMinutes - startMinutes) / (1000 * 60);
+    const priceForThisSlot = (minutesBooked / 60) * parseFloat(price.price);
+    totalPrice += priceForThisSlot;
+  }
+
+  bookingDetails.value.cost = formatCurrency(totalPrice);
+  bookingDetails.value.deposit = formatCurrency(totalPrice * 0.4);
+};
+
+// Parse time from string
+const parseTime = (timeStr) => {
+  return timeStr.split(":").map((t) => parseInt(t));
+};
+
+// Handle user selection
+const onUserSelect = (input) => {
+  if (input === null) return;
+
+  const selectedUser = users.value.find(
+    (user) => user.phone === input || user.phone === input.phone
+  );
+
+  if (selectedUser) {
+    bookingDetails.value.user.name = selectedUser.name;
+    bookingDetails.value.user.user_id = selectedUser.id;
+    bookingDetails.value.user.vip = selectedUser.vip;
+  } else {
+    bookingDetails.value.user.user_id = "";
+    bookingDetails.value.user.name = "";
+  }
+};
+
+// Fetch customers
+const fetchCustomers = async () => {
+  const { data } = await userService.getCustomers();
+  users.value = data.users;
+};
+
+// Fetch fields
 const fetchFields = async () => {
   const { data } = await fieldService.getFields();
   fields.value = data;
   resetBookings();
 };
 
+// Reset bookings
 const resetBookings = () => {
   bookings.value = fields.value.reduce(
     (acc, field) => ({
@@ -387,6 +543,7 @@ const resetBookings = () => {
   );
 };
 
+// Fetch bookings
 const fetchBookings = async () => {
   resetBookings();
   if (selectedField.value) {
@@ -442,9 +599,10 @@ const fetchBookings = async () => {
   }
 };
 
+// Handle booking modal open
 const handleOpenBooking = (fieldId, index, date) => {
   fetchCustomers();
-
+  selectedDateForm.value = selectedDate.value;
   selectedSlot.value = { fieldId, index, date };
   bookingDetails.value = {
     user: { name: "", user_id: "" },
@@ -452,40 +610,59 @@ const handleOpenBooking = (fieldId, index, date) => {
     end_time: timeSlots[index + 1],
     field: fieldId,
     booking_date: date || getLocalDate(selectedDate.value),
+    paymentMethod: "full",
+    paymentType: "direct",
   };
+  calculateEndTime();
   isDialogOpen.value = true;
 };
 
+// Get local date in YYYY-MM-DD format
 const getLocalDate = (date) => {
   const offset = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - offset * 60 * 1000);
   return localDate.toISOString().substr(0, 10);
 };
 
+// Handle booking submission
 const handleBooking = async () => {
-  console.log(bookingDetails.value);
-
   if (selectedSlot.value) {
     const bookingData = {
       field_id: bookingDetails.value.field,
-      booking_date: selectedSlot.value.date || getLocalDate(selectedDate.value),
+      booking_date:
+        selectedSlot.value.date || getLocalDate(selectedDateForm.value),
       start_time: bookingDetails.value.start_time,
       end_time: bookingDetails.value.end_time,
       user_name: bookingDetails.value.user.name,
       user_id: bookingDetails.value.user.user_id,
       user_phone: bookingDetails.value.user.phone,
-      deposit: 0,
+      deposit: bookingDetails.value.cost * 0.4,
+      payment_method: bookingDetails.value.paymentMethod,
+      payment_type: bookingDetails.value.paymentType,
     };
 
-    if (!bookingData.user_id) {
+    if (bookingDetails.value.paymentType === "zalopay") {
+      try {
+        console.log(bookingData);
+        const zaloPayResult = await paymentService.createZalopay(bookingData);
+        const qr_url = zaloPayResult.data.zalopay.order_url;
+        window.open(qr_url, "_blank", "width=500,height=600");
+      } catch (error) {
+        console.error("Error creating ZaloPay payment:", error);
+      }
+    } else {
+      try {
+        await bookingService.createBooking(bookingData);
+      } catch (error) {
+        console.error("Error creating booking:", error);
+      }
     }
-    console.log(bookingData);
-    // await bookingService.createBooking(bookingData);
     fetchBookings();
     isDialogOpen.value = false;
   }
 };
 
+// Get booking for a specific slot
 const getBookingForSlot = (fieldId, index, date) => {
   const bookingDate = date || getLocalDate(selectedDate.value);
   return bookings.value[fieldId] && bookings.value[fieldId][bookingDate]
@@ -493,11 +670,13 @@ const getBookingForSlot = (fieldId, index, date) => {
     : null;
 };
 
+// Check if booking starts at slot
 const isBookingStart = (fieldId, index, date) => {
   const booking = getBookingForSlot(fieldId, index, date);
   return booking && booking.start_time.slice(0, 5) === timeSlots[index];
 };
 
+// Get booking height for display
 const getBookingHeight = (fieldId, index, date) => {
   const booking = getBookingForSlot(fieldId, index, date);
   if (booking) {
@@ -509,10 +688,12 @@ const getBookingHeight = (fieldId, index, date) => {
   return 48;
 };
 
+// Computed field options
 const fieldOptions = computed(() => {
   return [{ id: null, name: "All Fields" }, ...fields.value];
 });
 
+// Filtered fields
 const filteredFields = computed(() => {
   let filtered = fields.value;
   if (selectedField.value) {
@@ -521,6 +702,7 @@ const filteredFields = computed(() => {
   return filtered;
 });
 
+// Navigation functions for date
 const previousDay = () => {
   const date = new Date(selectedDate.value);
   date.setDate(date.getDate() - 1);
@@ -549,27 +731,21 @@ const setToday = () => {
   selectedDate.value = new Date();
 };
 
-// const formatDate = (dateString) => {
-//   const date = new Date(dateString);
-
-//   return date.toLocaleDateString("default", { month: "short", day: "numeric" });
-// };
-
+// Format date
 const formatDate = (dateString) => {
   const date = new Date(dateString);
-
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");
-
   return `${day}/${month}`;
 };
 
+// Available end times computed property
 const availableEndTimes = computed(() => {
   if (!bookingDetails.value.start_time) return [];
   const startIndex = timeSlots.indexOf(bookingDetails.value.start_time);
   let endTimes = timeSlots.slice(startIndex + 1);
 
-  // Thêm 23:00 vào cuối danh sách nếu chưa có
+  // Add 23:00 to end times if not present
   if (!endTimes.includes("23:00")) {
     endTimes.push("23:00");
   }
@@ -577,6 +753,7 @@ const availableEndTimes = computed(() => {
   return endTimes;
 });
 
+// Check if time slot is past
 const isPastTime = (slotIndex, date) => {
   const currentDateTime = new Date();
   const slotDateTime = new Date(date);
@@ -588,14 +765,40 @@ const isPastTime = (slotIndex, date) => {
   return slotDateTime < currentDateTime;
 };
 
+// Available start times computed property
 const availableStartTimes = computed(() => {
   return timeSlots;
 });
 
+// Computed week days
+const weekDays = computed(() => {
+  const days = [];
+  const startOfWeek = getStartOfWeek(selectedDate.value);
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(date.getDate() + i);
+    days.push({
+      date: getLocalDate(date),
+      name: date.toLocaleString("default", { weekday: "short" }),
+    });
+  }
+  return days;
+});
+
+// Get start of the week
+const getStartOfWeek = (date) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+};
+
+// Watchers
 watch([selectedDate, selectedField, customerNameFilter], () => {
   fetchBookings();
 });
 
+// Lifecycle hook
 onMounted(() => {
   fetchFields();
   fetchBookings();

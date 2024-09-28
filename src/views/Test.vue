@@ -314,7 +314,7 @@
           <v-row>
             <v-col cols="12">
               <v-radio-group v-model="bookingDetails.paymentMethod" row>
-                <v-subheader>Payment Method</v-subheader>
+                <p>Payment Method</p>
                 <v-radio label="Full Payment" value="full"></v-radio>
                 <v-radio label="Partial Deposit" value="partial"></v-radio>
               </v-radio-group>
@@ -324,12 +324,22 @@
           <v-row>
             <v-col cols="12">
               <v-radio-group v-model="bookingDetails.paymentType" row>
-                <v-subheader>Payment Type</v-subheader>
+                <p>Payment Type</p>
                 <v-radio label="Pay Directly" value="direct"></v-radio>
-                <v-radio
-                  label="Pay Online via ZaloPay"
-                  value="zalopay"
-                ></v-radio>
+                <v-radio value="zalopay">
+                  <template v-slot:label>
+                    <img
+                      src="../assets/images/1715337285_zNBo0.png"
+                      alt="ZaloPay Logo"
+                      style="
+                        height: 50px;
+                        margin-right: 8px;
+                        filter: contrast(210%) brightness(90%);
+                      "
+                    />
+                    Pay Online via ZaloPay
+                  </template>
+                </v-radio>
               </v-radio-group>
             </v-col>
           </v-row>
@@ -635,7 +645,10 @@ const handleOpenBooking = (fieldId, index, date) => {
     end_time: timeSlots[index + 1],
     field: fieldId,
     booking_date: date || getLocalDate(selectedDate.value),
+    paymentMethod: "full",
+    paymentType: "direct",
   };
+  calculateEndTime();
   isDialogOpen.value = true;
 };
 
@@ -669,7 +682,7 @@ const handleBooking = async () => {
         const zaloPayResult = await paymentSerice.createZalopay(bookingData);
         console.log(zaloPayResult);
         const qr_url = zaloPayResult.data.zalopay.order_url;
-        window.open(qr_url, '_blank', 'width=500,height=600');
+        window.open(qr_url, "_blank", "width=500,height=600");
       } catch (error) {
         console.error("Error creating ZaloPay payment:", error);
       }
