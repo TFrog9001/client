@@ -12,6 +12,15 @@ const bookingService = {
             throw error;
         }
     },
+    async getBookingById(id) {
+        try {  
+            const response = await api.get(`/bookings/${id}`);
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi lấy booking:', error);
+            throw error;
+        }
+    },
     async createBooking(booking) {
         try {
             const response = await api.post('/bookings', booking);

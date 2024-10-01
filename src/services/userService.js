@@ -46,7 +46,7 @@ const userService = {
     // Chỉnh sửa thông tin người dùng theo ID
     async editUser(user, id) {
         try {
-            const response = await api.put(`/users/${id}`, user);
+            const response = await api.post(`/users/${id}`, user);
             return response;
         } catch (error) {
             console.error('Có lỗi xảy ra khi chỉnh sửa người dùng:', error);

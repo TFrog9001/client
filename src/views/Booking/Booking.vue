@@ -89,7 +89,11 @@
               >
                 <div class="booking-content">
                   <p class="text-subtitle-2">
-                    {{ getBookingForSlot(field.id, index).user.name + " - " + getBookingForSlot(field.id, index).user.phone  }}
+                    {{
+                      getBookingForSlot(field.id, index).user.name +
+                      " - " +
+                      getBookingForSlot(field.id, index).user.phone
+                    }}
                   </p>
                   <p class="text-caption">
                     {{
@@ -183,9 +187,10 @@
                   <p class="text-subtitle-2">
                     {{
                       getBookingForSlot(selectedField, index, day.date).user
-                        .name + " - " + 
-                        getBookingForSlot(selectedField, index, day.date).user
-                        .phone  
+                        .name +
+                      " - " +
+                      getBookingForSlot(selectedField, index, day.date).user
+                        .phone
                     }}
                   </p>
                   <p class="text-caption">
@@ -888,15 +893,16 @@ onMounted(() => {
   /* border: 1px solid transparent; */
   margin-left: 1px;
   overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform 0.7s, box-shadow 0.7s;
   height: auto;
 }
 
 .booking-block:hover {
-  transform: scale(1.02); 
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); 
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   overflow: visible;
-  height: calc(100% + 144px) !important;
+  height: calc(100% + 196px) !important;
+  z-index: 10 !important;
 }
 
 .booking-content {
@@ -905,7 +911,7 @@ onMounted(() => {
   flex-wrap: nowrap;
   align-items: center;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   color: #1f1e1e;
 }
 
@@ -925,7 +931,8 @@ onMounted(() => {
 .status-cancelled {
   background-color: lightcoral; /* Color for "Hủy" */
 }
-#table-booking, #table-booking-week {
+#table-booking,
+#table-booking-week {
   height: 1800px;
   overflow: hidden;
 }
