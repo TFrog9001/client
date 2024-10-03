@@ -20,6 +20,10 @@ export default defineConfig({
         target: "http://127.0.0.1:8000/",
         changeOrigin: true,
       },
+      "/broadcasting/auth": {
+        target: "http://127.0.0.1:8000/",
+        changeOrigin: true,
+      },
     },
     "/api/zalopay/callback": {
       target: "https://mlatbooking.serveo.net",

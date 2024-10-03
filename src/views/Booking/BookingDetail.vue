@@ -1,9 +1,9 @@
 <template>
   <v-row>
-    <v-col cols="6">
+    <v-col>
       <div v-if="booking" class="booking-details">
-        <h3>Booking Detail</h3>
-        <div class="booking-info">
+        <h3 class="mx-2">Booking Detail</h3>
+        <div class="booking-info ma-6">
           <p>
             <strong>Customer Name:</strong> <span>{{ booking.user.name }}</span>
           </p>
@@ -23,15 +23,11 @@
             <span>{{ formatDate(booking.booking_date) }}</span>
           </p>
           <p>
-            <strong>Start Time:</strong>
-            <span>{{ formatTime(booking.start_time) }}</span>
-          </p>
-          <p>
-            <strong>End Time:</strong>
-            <span>{{ formatTime(booking.end_time) }}</span>
-          </p>
-          <p>
-            <strong>Status:</strong> <span>{{ booking.status }}</span>
+            <strong>Time Frame:</strong>
+            <span
+              >{{ formatTime(booking.start_time) }} &nbsp---&nbsp
+              {{ formatTime(booking.end_time) }}</span
+            >
           </p>
           <p>
             <strong>Field Fee:</strong>
@@ -43,11 +39,14 @@
               >{{ formatCurrency(booking.deposit) }} VND</span
             >
           </p>
+          <p>
+            <strong>Status:</strong> <span>{{ booking.status }}</span>
+          </p>
         </div>
       </div>
-      <div v-else>Loading...</div>
+      <div v-else class="booking-details pa-10">Loading...</div>
     </v-col>
-    <v-col cols="6">
+    <v-col>
       <div class="chat-box">
         <div class="messages">
           <div
@@ -161,6 +160,14 @@ onMounted(() => {
 <style scoped>
 .booking-details {
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  height: 450px;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
 }
 
 .booking-info {
@@ -184,7 +191,7 @@ onMounted(() => {
 .chat-box {
   border: 1px solid #ccc;
   padding: 10px;
-  height: 400px;
+  height: 450px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
