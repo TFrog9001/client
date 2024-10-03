@@ -12,11 +12,15 @@ const chatService = {
     //         throw error;
     //     }
     // },
-    async sendMessage(message, bookingId) {
+    async sendMessage(message, bookingId, user_id) {
         try {
             const response = await api.post(
-                `/booking/${bookingId}/conversations/${conversations}/messages`,
-                { message },
+                `/bookings/${bookingId}/messages`,
+                {
+                    message: message,
+                    booking_id: bookingId,
+                    user_id: user_id
+                }
             );
             return response;
         } catch (error) {

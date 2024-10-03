@@ -101,7 +101,10 @@ const fetchBooking = async () => {
 async function handleSendMessage() {
   if (newMessage.value.trim()) {
     try {
-      await chatService.sendMessage(newMessage.value, bookingId);
+      const user = JSON.parse(localStorage.getItem('user'));
+      console.log(user.id);
+      
+      await chatService.sendMessage(newMessage.value, bookingId, user.id);
       newMessage.value = "";
     } catch (error) {
       console.error("Không thể gửi tin nhắn:", error);
@@ -111,15 +114,14 @@ async function handleSendMessage() {
 
 // Xác định xem tin nhắn là tin gửi hay nhận
 function isSentMessage(msg) {
-  // Giả sử user_id của người dùng hiện tại là 9
-  const user = localStorage.getItem("user");
+  const user = JSON.parse(localStorage.getItem('user'));
   return msg.user_id === user.id;
 }
 
 // Định dạng ngày thành dd/mm/yyyy
 const formatDate = (dateString) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-GB"); // "en-GB" sẽ trả về format dd/mm/yyyy
+  return date.toLocaleDateString("en-GB"); 
 };
 
 // Định dạng thời gian thành HH:MM
@@ -136,7 +138,7 @@ const formatCurrency = (amount) => {
       currency: "VND",
       minimumFractionDigits: 0,
     })
-    .replace("₫", ""); // Loại bỏ ký hiệu tiền "₫" nếu không muốn hiển thị
+    .replace("₫", "");
 };
 
 // Lắng nghe tin nhắn mới qua WebSocket
