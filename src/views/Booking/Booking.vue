@@ -86,6 +86,9 @@
                     getBookingForSlot(field.id, index).status === 'Hủy',
                 }"
                 :style="{ height: `${getBookingHeight(field.id, index)}px` }"
+                @click="
+                  viewBookingDetail(getBookingForSlot(field.id, index).id)
+                "
               >
                 <div class="booking-content">
                   <p class="text-subtitle-2">
@@ -182,6 +185,11 @@
                     day.date
                   )}px`,
                 }"
+                @click="
+                  viewBookingDetail(
+                    getBookingForSlot(selectedField, index, day.date).id
+                  )
+                "
               >
                 <div class="booking-content">
                   <p class="text-subtitle-2">
@@ -436,12 +444,15 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import fieldService from "../../services/fieldService";
 import bookingService from "../../services/bookingService";
 import userService from "../../services/userService";
 import paymentService from "../../services/paymentService";
 import { VDateInput } from "vuetify/labs/VDateInput";
 import { showNotification } from "../../utils/notification";
+
+const router = useRouter();
 
 // State variables
 const users = ref([]);
@@ -866,6 +877,12 @@ const getStartOfWeek = (date) => {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
+};
+
+const viewBookingDetail = (id) => {
+  console.log(id);
+  
+  router.push({ name: "BookingDetail", params: { id: id } });
 };
 
 // Watchers

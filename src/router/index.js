@@ -10,6 +10,7 @@ import FieldDetail from '../views/Fileds/FieldDetail.vue';
 import Calendar from '../components/Calendar.vue';
 import Booking from '../views/Booking/Booking.vue';
 import BookingDetail from '../views/Booking/BookingDetail.vue';
+import Chat from '../views/Chat/Chat.vue';
 
 const routes = [
     {
@@ -74,9 +75,9 @@ const routes = [
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
-        path: '/calendar',
-        name: 'Calandat',
-        component: Calendar,
+        path: '/chat',
+        name: 'Chat',
+        component: Chat,
         meta: { requiresAuth: true, requiresAdmin: true },
     },
     {

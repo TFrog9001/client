@@ -14,7 +14,7 @@
             <strong>Email:</strong> <span>{{ booking.user.email }}</span>
           </p>
           <!-- <v-divider :thickness="7"></v-divider> -->
-          <hr />
+           <hr/>
           <p>
             <strong>Field:</strong> <span>{{ booking.field.name }}</span>
           </p>
@@ -23,12 +23,10 @@
             <span>{{ formatDate(booking.booking_date) }}</span>
           </p>
           <p>
-            <strong>Start Time:</strong>
-            <span>{{ formatTime(booking.start_time) }}</span>
+            <strong>Start Time:</strong> <span>{{ formatTime(booking.start_time) }}</span>
           </p>
           <p>
-            <strong>End Time:</strong>
-            <span>{{ formatTime(booking.end_time) }}</span>
+            <strong>End Time:</strong> <span>{{ formatTime(booking.end_time) }}</span>
           </p>
           <p>
             <strong>Status:</strong> <span>{{ booking.status }}</span>
@@ -38,10 +36,7 @@
             <span>{{ formatCurrency(booking.field_price) }} VND</span>
           </p>
           <p>
-            <strong>Deposit:</strong>
-            <span class="text-error"
-              >{{ formatCurrency(booking.deposit) }} VND</span
-            >
+            <strong>Deposit:</strong> <span class="text-error">{{ formatCurrency(booking.deposit) }} VND</span>
           </p>
         </div>
       </div>
@@ -113,7 +108,7 @@ async function handleSendMessage() {
 // Xác định xem tin nhắn là tin gửi hay nhận
 function isSentMessage(msg) {
   // Giả sử user_id của người dùng hiện tại là 9
-  const user = localStorage.getItem("user");
+  const user = localStorage.getItem('user');
   return msg.user_id === user.id;
 }
 
@@ -131,14 +126,13 @@ const formatTime = (timeString) => {
 
 // Định dạng tiền tệ
 const formatCurrency = (amount) => {
-  return parseFloat(amount)
-    .toLocaleString("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    })
-    .replace("₫", ""); // Loại bỏ ký hiệu tiền "₫" nếu không muốn hiển thị
+  return parseFloat(amount).toLocaleString("vi-VN", {
+    style: "currency",
+    currency: "VND",
+    minimumFractionDigits: 0,
+  }).replace("₫", ""); // Loại bỏ ký hiệu tiền "₫" nếu không muốn hiển thị
 };
+
 
 // Lắng nghe tin nhắn mới qua WebSocket
 function listenForMessages() {
