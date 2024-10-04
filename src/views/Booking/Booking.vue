@@ -25,12 +25,22 @@
         ></v-select>
       </v-col>
       <v-col cols="12" sm="4">
-        <v-text-field
-          v-model="customerNameFilter"
-          label="Customer Name"
+        <v-select
+          v-model="selectedField"
+          :items="fieldOptions"
+          label="Select Field"
+          item-title="name"
+          item-value="id"
           variant="outlined"
           clearable
-        ></v-text-field>
+        ></v-select>
+        <v-select
+            v-model="field.type"
+            :items="['5', '7', '11']"
+            label="Loại sân"
+            required
+            variant="outlined"
+          />
       </v-col>
     </v-row>
     <v-row>
@@ -881,7 +891,7 @@ const getStartOfWeek = (date) => {
 
 const viewBookingDetail = (id) => {
   console.log(id);
-  
+
   router.push({ name: "BookingDetail", params: { id: id } });
 };
 

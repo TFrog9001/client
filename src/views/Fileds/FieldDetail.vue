@@ -66,7 +66,7 @@
         <v-card-text>
           <v-form ref="timeSlotForm">
             <v-row>
-              <v-col cols="6">
+              <v-col>
                 <label>Start time:</label>
                 <TimePicker
                   v-model="newTimeSlot.start_time"
@@ -81,7 +81,7 @@
                 />
               </v-col>
 
-              <v-col cols="6">
+              <v-col>
                 <label>End Time:</label>
                 <TimePicker
                   v-model="newTimeSlot.end_time"
@@ -140,9 +140,12 @@
               :key="price.index"
               :style="getTimeSlotStyle(price, index)"
             >
-              <span>{{ price.price }} VND</span>
+              <span>{{ formatCurrency(price.price) }} VND</span>
               <br />
-              <span>{{ price.start_time }} - {{ price.end_time }}</span>
+              <span
+                >{{ formatTime(price.start_time) }} -
+                {{ formatTime(price.end_time) }}</span
+              >
             </div>
           </div>
         </v-card-text>
@@ -290,19 +293,39 @@ const saveTimeSlot = async () => {
       }
       fetchFieldDetail();
     } else {
-      if (selectedTimeSlot.value) {
-        const index = field.value.prices.findIndex(
-          (slot) =>
-            slot.start_time === selectedTimeSlot.value.start_time &&
-            slot.end_time === selectedTimeSlot.value.end_time
-        );
-        if (index !== -1) {
-          field.value.prices.splice(index, 1, { ...payload });
+      // Xử lý thêm khung giờ mới
+      const existingPrices = field.value.prices.slice(); // Sao chép mảng khung giờ hiện có
+
+      // Duyệt qua các khung giờ hiện có và điều chỉnh chúng
+      for (const price of existingPrices) {
+        const existingStart = price.start_time.split(":").map(Number);
+        const existingEnd = price.end_time.split(":").map(Number);
+
+        // Kiểm tra xem có chồng lấn không
+        const isOverlapping =
+          (start[0] < existingEnd[0] || (start[0] === existingEnd[0] && start[1] < existingEnd[1])) &&
+          (end[0] > existingStart[0] || (end[0] === existingStart[0] && end[1] > existingStart[1]));
+
+        if (isOverlapping) {
+          // Nếu khung giờ cũ chồng lấn với khung giờ mới, cần cập nhật
+          if (existingStart[0] < start[0] || (existingStart[0] === start[0] && existingStart[1] < start[1])) {
+            // Cập nhật khung giờ trước
+            price.end_time = newTimeSlot.value.start_time;
+          } else if (existingEnd[0] > end[0] || (existingEnd[0] === end[0] && existingEnd[1] > end[1])) {
+            // Cập nhật khung giờ sau
+            price.start_time = newTimeSlot.value.end_time;
+          } else {
+            // Nếu khung giờ cũ hoàn toàn nằm trong khung giờ mới, xóa nó
+            const index = field.value.prices.indexOf(price);
+            field.value.prices.splice(index, 1);
+          }
         }
-      } else {
-        field.value.prices.push({ ...payload });
       }
 
+      // Thêm khung giờ mới vào danh sách
+      field.value.prices.push(payload);
+
+      // Sắp xếp lại các khung giờ
       field.value.prices.sort((a, b) => {
         const [aHour, aMinute] = a.start_time.split(":").map(Number);
         const [bHour, bMinute] = b.start_time.split(":").map(Number);
@@ -365,6 +388,22 @@ const getTimeSlotStyle = (timeSlot, index) => {
     borderRadius: "5px",
   };
 };
+
+const formatCurrency = (amount) => {
+  return parseFloat(amount)
+    .toLocaleString("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
+    })
+    .replace("₫", "");
+};
+
+const formatTime = (timeString) => {
+  const [hours, minutes] = timeString.split(":");
+  return `${hours}:${minutes}`;
+};
+
 
 onMounted(fetchFieldDetail);
 </script>
