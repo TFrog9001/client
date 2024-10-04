@@ -24,24 +24,25 @@
           clearable
         ></v-select>
       </v-col>
-      <v-col cols="12" sm="4">
-        <v-select
-          v-model="selectedField"
-          :items="fieldOptions"
-          label="Select Field"
-          item-title="name"
-          item-value="id"
-          variant="outlined"
-          clearable
-        ></v-select>
-        <v-select
-            v-model="field.type"
-            :items="['5', '7', '11']"
-            label="Loại sân"
-            required
-            variant="outlined"
-          />
-      </v-col>
+      <!-- <v-col cols="12" sm="4">
+        <v-card class="mb-4 pa-4">
+          <v-row>
+            <v-col cols="12">
+              <v-checkbox-group
+                v-model="selectedStatuses"
+                label="Filter by Booking Status"
+                row
+                mandatory
+              >
+                <v-checkbox value="Đã đặt" label="Đã đặt"></v-checkbox>
+                <v-checkbox value="Đã cọc" label="Đã cọc"></v-checkbox>
+                <v-checkbox value="Đã thanh toán" label="Đã thanh toán"></v-checkbox>
+                <v-checkbox value="Hủy" label="Hủy"></v-checkbox>
+              </v-checkbox-group>
+            </v-col>
+          </v-row>
+        </v-card>
+      </v-col> -->
     </v-row>
     <v-row>
       <v-col cols="12" class="d-flex justify-space-between">
@@ -473,7 +474,6 @@ const selectedSlot = ref(null);
 const selectedDate = ref(new Date());
 const selectedDateForm = ref(new Date());
 const selectedField = ref(null);
-const customerNameFilter = ref("");
 
 // Booking details
 const bookingDetails = ref({
@@ -812,6 +812,8 @@ const nextDay = () => {
 };
 
 const previousWeek = () => {
+  
+  
   const date = new Date(selectedDate.value);
   date.setDate(date.getDate() - 7);
   selectedDate.value = date;
@@ -888,15 +890,12 @@ const getStartOfWeek = (date) => {
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
 };
-
 const viewBookingDetail = (id) => {
-  console.log(id);
-
   router.push({ name: "BookingDetail", params: { id: id } });
 };
 
 // Watchers
-watch([selectedDate, selectedField, customerNameFilter], () => {
+watch([selectedDate, selectedField], () => {
   fetchBookings();
 });
 

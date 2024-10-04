@@ -47,7 +47,7 @@
           <v-progress-linear
             color="light-blue"
             height="20"
-            model-value="10"
+            :model-value="progress"
             striped
           >
             <template v-slot:default="{ value }">
@@ -129,8 +129,26 @@ const booking = ref(null);
 const messages = ref([]);
 const newMessage = ref("");
 const hoveredMessageIndex = ref(null);
+const progress = ref(0);
+const calculateProgress = () => {
+  const now = new Date();
+  const startTime = new Date(
+    `${booking.value.booking_date}T${booking.value.start_time}`
+  );
+  const endTime = new Date(
+    `${booking.value.booking_date}T${booking.value.end_time}`
+  );
 
-// Lấy tham chiếu đến container tin nhắn
+  // Tính tổng thời gian và thời gian đã trôi qua
+  const totalTime = endTime - startTime;
+  const elapsedTime = now - startTime;
+
+  if (elapsedTime > 0 && totalTime > 0) {
+    progress.value = Math.min((elapsedTime / totalTime) * 100, 100);
+  } else {
+    progress.value = 0;
+  }
+};
 const messagesContainer = ref(null);
 
 const fetchData = () => {
@@ -143,6 +161,7 @@ const fetchBooking = async () => {
   try {
     const response = await bookingService.getBookingById(bookingId);
     booking.value = response.data;
+    calculateProgress();
   } catch (error) {
     console.error("Error fetching booking:", error);
   }
@@ -254,6 +273,7 @@ function listenForMessages() {
 onMounted(() => {
   fetchData();
   listenForMessages();
+  setInterval(calculateProgress, 60000);
 });
 </script>
 
