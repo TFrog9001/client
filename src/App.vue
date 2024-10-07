@@ -1,25 +1,27 @@
 <script setup>
-import Sidebar from './components/Sidebar.vue';
-import { useAuthStore } from './stores/auth';
-import { computed } from 'vue';
-
-const authStore = useAuthStore();
-const isAuthenticated = computed(() => authStore.isAuthenticated);
-const isAdmin = computed(() => authStore.isAdmin);
+import Navbar from "./components/Navbar.vue";
+import Footer from "./components/Footer.vue";
 </script>
 
+<!-- App.vue -->
 <template>
-  <v-responsive class="border rounded">
-    <v-app id="inspire">
-
-      <Sidebar v-if="isAuthenticated && isAdmin"/>
-    
-      <v-main class="ma-4">
-        <router-view></router-view>
+  <div id="app">
+    <v-app>
+        <Navbar />
+      <v-main minHeight="698">
+        <v-container>
+          <router-view></router-view>
+        </v-container>
       </v-main>
+      <v-footer>
+        <Footer />
+      </v-footer>
     </v-app>
-  </v-responsive>
+  </div>
 </template>
 
+<script>
+</script>
 
-<style scoped></style>
+<style scoped>
+</style>

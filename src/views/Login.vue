@@ -85,7 +85,7 @@ const handleLogin = async () => {
             message: 'Đăng nhập thành công',
             type: 'success'
         });
-        router.push({ name: 'Admin' });
+        router.push({ name: 'Home' });
     } catch (error) {
         if (error.response && error.response.data.errors) {
             errors.email = error.response.data.errors.email || null;
