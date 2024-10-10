@@ -119,7 +119,7 @@ const fecthUserInfor = () => {
   if (user) {
     userName.value = user.name;
     if (user.avatar != null && user.avatar != "") {
-      userAvatar.value = `http:127.0.0.1:8000/${user.avatar}`;
+      userAvatar.value = user.avatar;
     }
   }
 };

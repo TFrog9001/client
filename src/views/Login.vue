@@ -153,11 +153,11 @@ const handleGoogleLogin = () => {
         Cookies.set("refresh_token", refreshToken);
         localStorage.setItem("user", JSON.stringify(user));
 
-        showNotification({
-          title: "Thành công",
-          message: "Đăng nhập bằng Google thành công",
-          type: "success",
-        });
+        // showNotification({
+        //   title: "Thành công",
+        //   message: "Đăng nhập bằng Google thành công",
+        //   type: "success",
+        // });
         router.push({ name: "Home" });
       } else {
         showNotification({

@@ -1,7 +1,7 @@
 <template>
-  <div class="bg-grey-lighten-4">
+  <div id="booking-page" class="bg-grey-lighten-4">
     <v-container>
-      <h1 class="text-h4 text-center mb-6">Soccer Field Schedule</h1>
+      <h1 class="text-h4 text-center mb-6 text-white">Soccer Field Schedule</h1>
 
       <v-card class="mb-4 pa-4">
         <v-row>
@@ -994,5 +994,13 @@ onMounted(() => {
 
 #table-booking-week td {
   width: calc(100% / 8);
+}
+
+#booking-page {
+  background-image: url("https://d82bjlqmetw03.cloudfront.net/uploads/article/thumbnail/31285/medium_image_2024-06-21_153031642.png?updatedAt=1718964592");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  position: relative;
 }
 </style>
