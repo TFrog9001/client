@@ -7,11 +7,9 @@ import Footer from "./components/Footer.vue";
 <template>
   <div id="app">
     <v-app>
-        <Navbar />
+      <Navbar />
       <v-main minHeight="698">
-        <v-container>
           <router-view></router-view>
-        </v-container>
       </v-main>
       <v-footer>
         <Footer />
@@ -20,8 +18,6 @@ import Footer from "./components/Footer.vue";
   </div>
 </template>
 
-<script>
-</script>
+<script></script>
 
-<style scoped>
-</style>
+<style scoped></style>

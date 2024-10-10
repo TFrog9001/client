@@ -18,7 +18,7 @@
     <!-- Menu items chỉ hiển thị khi màn hình lớn -->
     <v-row class="d-none d-md-flex justify-center">
       <template v-for="(item, index) in menuItems" :key="index">
-        <v-btn :href="item.href" text :class="{ active: isActive(item.href) }">
+        <v-btn :to="item.href" text :class="{ active: isActive(item.href) }">
           {{ item.title }}
         </v-btn>
       </template>
@@ -27,8 +27,8 @@
     <!-- Tài khoản và đăng xuất -->
     <v-col cols="2" class="d-none d-md-flex justify-end">
       <template v-if="!isAuthenticated">
-        <v-btn text href="/login">Login</v-btn>
-        <v-btn text href="/register">Register</v-btn>
+        <v-btn text to="/login">Login</v-btn>
+        <v-btn text to="/register">Register</v-btn>
       </template>
       <template v-else>
         <v-menu>
@@ -39,10 +39,10 @@
             </v-btn>
           </template>
           <v-list>
-            <v-list-item href="/account">
+            <v-list-item to="/account">
               <v-list-item-title>Tài Khoản</v-list-item-title>
             </v-list-item>
-            <v-list-item href="/user-booking">
+            <v-list-item to="/user-booking">
               <v-list-item-title>Booking của bạn</v-list-item-title>
             </v-list-item>
             <v-list-item @click="logout">
@@ -76,10 +76,10 @@
       </template>
       <template v-else>
         <v-list-item href="/account">
-          <v-list-item-title>Tài Khoản</v-list-item-title>
+          <v-list-item-title>My account</v-list-item-title>
         </v-list-item>
         <v-list-item href="/user-booking">
-          <v-list-item-title>Booking của bạn</v-list-item-title>
+          <v-list-item-title>My Booking History</v-list-item-title>
         </v-list-item>
         <v-list-item @click="logout">
           <v-list-item-title>Logout</v-list-item-title>
@@ -90,11 +90,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, watchEffect } from "vue";
 import { useAuthStore } from "../stores/auth";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 
@@ -111,10 +112,10 @@ const menuItems = ref([
   { title: "Contact", href: "/contact" },
 ]);
 
-const isActive = (path) => window.location.pathname === path;
+const isActive = (path) => route.path === path;
 
 const fecthUserInfor = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user"));  
   if (user) {
     userName.value = user.name;
     if (user.avatar != null && user.avatar != "") {
@@ -124,8 +125,8 @@ const fecthUserInfor = () => {
 };
 
 // Watch trạng thái đăng nhập
-watch(isAuthenticated, (newVal) => {
-  if (newVal) {
+watchEffect(() => {
+  if (authStore.user) {
     fecthUserInfor();
   }
 });

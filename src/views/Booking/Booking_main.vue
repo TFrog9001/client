@@ -1,456 +1,446 @@
 <template>
-  <h1 class="text-h4 text-center mb-6">Soccer Field Schedule</h1>
+  <div class="bg-grey-lighten-4">
+    <v-container>
+      <h1 class="text-h4 text-center mb-6">Soccer Field Schedule</h1>
 
-  <v-card class="mb-4 pa-4">
-    <v-row>
-      <v-col cols="12" sm="4">
-        <v-date-input
-          class="date-picker"
-          v-model="selectedDate"
-          label="Select Date"
-          prepend-icon="mdi-calendar"
-          clearable
-          variant="outlined"
-        ></v-date-input>
-      </v-col>
-      <v-col cols="12" sm="4">
-        <v-select
-          v-model="selectedField"
-          :items="fieldOptions"
-          label="Select Field"
-          item-title="name"
-          item-value="id"
-          variant="outlined"
-          clearable
-        ></v-select>
-      </v-col>
-      <!-- <v-col cols="12" sm="4">
-        <v-card class="mb-4 pa-4">
-          <v-row>
-            <v-col cols="12">
-              <v-checkbox-group
-                v-model="selectedStatuses"
-                label="Filter by Booking Status"
-                row
-                mandatory
-              >
-                <v-checkbox value="Đã đặt" label="Đã đặt"></v-checkbox>
-                <v-checkbox value="Đã cọc" label="Đã cọc"></v-checkbox>
-                <v-checkbox value="Đã thanh toán" label="Đã thanh toán"></v-checkbox>
-                <v-checkbox value="Hủy" label="Hủy"></v-checkbox>
-              </v-checkbox-group>
-            </v-col>
-          </v-row>
-        </v-card>
-      </v-col> -->
-    </v-row>
-    <v-row>
-      <v-col cols="12" class="d-flex justify-space-between">
-        <v-btn @click="selectedField ? previousWeek() : previousDay()">
-          {{ selectedField ? "Previous Week" : "Previous Day" }}
-        </v-btn>
-        <v-btn @click="setToday">
-          {{ selectedField ? "This Week" : "Today" }}
-        </v-btn>
-        <v-btn @click="selectedField ? nextWeek() : nextDay()">
-          {{ selectedField ? "Next Week" : "Next Day" }}
-        </v-btn>
-      </v-col>
-    </v-row>
-  </v-card>
-
-  <v-card v-if="!selectedField">
-    <v-table id="table-booking" fixed-header>
-      <thead>
-        <tr>
-          <th class="text-left">Time</th>
-          <th
-            v-for="field in filteredFields"
-            :key="field.id"
-            class="text-center"
-          >
-            {{ field.name }}
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(time, index) in timeSlots" :key="time">
-          <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
-          <td v-else class="time-line"></td>
-          <td
-            v-for="field in filteredFields"
-            :key="`${field.id}-${time}`"
-            class="pa-1"
-          >
-            <template v-if="isBookingStart(field.id, index)">
-              <div
-                class="booking-block"
-                :class="{
-                  'status-paid':
-                    getBookingForSlot(field.id, index).status ===
-                    'Đã thanh toán',
-                  'status-booked':
-                    getBookingForSlot(field.id, index).status === 'Đã đặt',
-                  'status-deposit':
-                    getBookingForSlot(field.id, index).status === 'Đã cọc',
-                  'status-cancelled':
-                    getBookingForSlot(field.id, index).status === 'Hủy',
-                }"
-                :style="{ height: `${getBookingHeight(field.id, index)}px` }"
-                @click="
-                  viewBookingDetail(getBookingForSlot(field.id, index).id)
-                "
-              >
-                <div class="booking-content">
-                  <p class="text-subtitle-2">
-                    {{
-                      getBookingForSlot(field.id, index).user.name +
-                      " - " +
-                      getBookingForSlot(field.id, index).user.phone
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{
-                      getBookingForSlot(field.id, index).start_time.slice(0, 5)
-                    }}
-                    -
-                    {{
-                      getBookingForSlot(field.id, index).end_time.slice(0, 5)
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{
-                      formatCurrency(
-                        getBookingForSlot(field.id, index).field_price
-                      )
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{ getBookingForSlot(field.id, index).status }}
-                  </p>
-                </div>
-              </div>
-            </template>
-            <v-btn
-              v-else-if="
-                !getBookingForSlot(field.id, index) &&
-                isPastTime(index, selectedDate)
-              "
-              block
-              disabled
-            >
-              -
-            </v-btn>
-            <v-btn
-              v-else-if="
-                !getBookingForSlot(field.id, index) &&
-                !isPastTime(index, selectedDate)
-              "
-              block
-              @click="handleOpenBooking(field.id, index)"
-            >
-              +
-            </v-btn>
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
-  </v-card>
-
-  <v-card v-else>
-    <v-table id="table-booking-week" fixed-header>
-      <thead>
-        <tr>
-          <th class="text-left">Time</th>
-          <th v-for="day in weekDays" :key="day.date" class="text-center">
-            {{ day.name }} ({{ formatDate(day.date) }})
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(time, index) in timeSlots" :key="time">
-          <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
-          <td v-else class="time-line"></td>
-          <td v-for="day in weekDays" :key="`${day.date}-${time}`" class="pa-1">
-            <template v-if="isBookingStart(selectedField, index, day.date)">
-              <div
-                class="booking-block"
-                :class="{
-                  'status-paid':
-                    getBookingForSlot(selectedField, index, day.date).status ===
-                    'Đã thanh toán',
-                  'status-booked':
-                    getBookingForSlot(selectedField, index, day.date).status ===
-                    'Đã đặt',
-                  'status-deposit':
-                    getBookingForSlot(selectedField, index, day.date).status ===
-                    'Đã cọc',
-                  'status-cancelled':
-                    getBookingForSlot(selectedField, index, day.date).status ===
-                    'Hủy',
-                }"
-                :style="{
-                  height: `${getBookingHeight(
-                    selectedField,
-                    index,
-                    day.date
-                  )}px`,
-                }"
-                @click="
-                  viewBookingDetail(
-                    getBookingForSlot(selectedField, index, day.date).id
-                  )
-                "
-              >
-                <div class="booking-content">
-                  <p class="text-subtitle-2">
-                    {{
-                      getBookingForSlot(selectedField, index, day.date).user
-                        .name +
-                      " - " +
-                      getBookingForSlot(selectedField, index, day.date).user
-                        .phone
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{
-                      getBookingForSlot(
-                        selectedField,
-                        index,
-                        day.date
-                      ).start_time.slice(0, 5)
-                    }}
-                    -
-                    {{
-                      getBookingForSlot(
-                        selectedField,
-                        index,
-                        day.date
-                      ).end_time.slice(0, 5)
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{
-                      formatCurrency(
-                        getBookingForSlot(selectedField, index, day.date)
-                          .field_price
-                      )
-                    }}
-                  </p>
-                  <p class="text-caption">
-                    {{
-                      getBookingForSlot(selectedField, index, day.date).status
-                    }}
-                  </p>
-                </div>
-              </div>
-            </template>
-            <v-btn
-              v-else-if="
-                !getBookingForSlot(selectedField, index, day.date) &&
-                isPastTime(index, day.date)
-              "
-              block
-              disabled
-            >
-              -
-            </v-btn>
-            <v-btn
-              v-else-if="
-                !getBookingForSlot(selectedField, index, day.date) &&
-                !isPastTime(index, day.date)
-              "
-              block
-              @click="handleOpenBooking(selectedField, index, day.date)"
-            >
-              +
-            </v-btn>
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
-  </v-card>
-  <!-- Dialog -->
-  <v-dialog v-model="isDialogOpen" max-width="500px" height="800px">
-    <v-card height="100%">
-      <v-card-title id="title-model">Book Soccer Field</v-card-title>
-      <v-card-text class="mt-4">
-        <v-form @submit.prevent="handleBooking">
-          <v-row>
-            <!-- Hiển thị ngày booking -->
-            <v-col cols="6">
-              <v-date-input
-                class="date-picker"
-                v-model="selectedDateForm"
-                label="Select Date"
-                prepend-icon="mdi-calendar"
-                clearable
-                variant="outlined"
-              ></v-date-input>
-            </v-col>
-
-            <!-- Hiển thị tên sân booking -->
-            <v-col cols="6">
-              <v-select
-                v-model="bookingDetails.field"
-                :items="fields"
-                item-title="name"
-                item-value="id"
-                label="Booking Field"
-                variant="outlined"
-                @update:model-value="calculateEndTime"
-              ></v-select>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="">
-              <v-select
-                v-model="bookingDetails.start_time"
-                :items="availableStartTimes"
-                label="Start Time"
-                @update:model-value="calculateEndTime"
-              ></v-select>
-            </v-col>
-            <v-col cols="">
-              <v-select
-                v-model="bookingDetails.end_time"
-                :items="availableEndTimes"
-                label="End Time"
-                @update:model-value="calculateEndTime"
-              ></v-select>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col>
-              <v-text-field
-                v-model="bookingDetails.cost"
-                label="Cost"
-                variant="outlined"
-                readonly
-                suffix="VND"
-              >
-              </v-text-field>
-            </v-col>
-            <v-col>
-              <v-text-field
-                v-model="bookingDetails.deposit"
-                label="Deposit"
-                variant="outlined"
-                readonly
-                suffix="VND"
-              >
-              </v-text-field>
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-combobox
-              v-model="bookingDetails.user.phone"
-              :items="users"
-              item-title="phone"
+      <v-card class="mb-4 pa-4">
+        <v-row>
+          <v-col cols="12" sm="4">
+            <v-date-input
+              class="date-picker"
+              v-model="selectedDate"
+              label="Select Date"
+              prepend-icon="mdi-calendar"
+              clearable
+              variant="outlined"
+            ></v-date-input>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <v-select
+              v-model="selectedField"
+              :items="fieldOptions"
+              label="Select Field"
+              item-title="name"
               item-value="id"
-              label="Select or Enter Customer Name"
               variant="outlined"
               clearable
-              @update:model-value="onUserSelect"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item class="text-caption" v-bind="props">
-                  <v-icon
-                    class="me-2"
-                    v-if="item.raw.vip === '1'"
-                    color="amber-lighten-1"
-                    icon="mdi-star"
-                  ></v-icon>
-                  {{ item.raw.name }} - {{ item.raw.email }}
-                </v-list-item>
-                <hr />
-              </template>
-            </v-combobox>
-          </v-row>
-          <v-row>
-            <v-text-field
-              v-model="bookingDetails.user.name"
-              label="Enter Customer Name"
-              variant="outlined"
-            ></v-text-field>
-          </v-row>
-          <v-row>
-            <v-col cols="12">
-              <v-radio-group v-model="bookingDetails.paymentMethod" row>
-                <p>Payment Method</p>
-                <v-radio label="Full Payment" value="full"></v-radio>
-                <v-radio label="Partial Deposit" value="partial"></v-radio>
-                <v-radio
-                  v-if="bookingDetails.user.vip === '1'"
-                  label="None payment (just for V.I.P)"
-                  value="none"
-                ></v-radio>
-              </v-radio-group>
-            </v-col>
-          </v-row>
+            ></v-select>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="12" class="d-flex justify-space-between">
+            <v-btn @click="selectedField ? previousWeek() : previousDay()">
+              {{ selectedField ? "Previous Week" : "Previous Day" }}
+            </v-btn>
+            <v-btn @click="setToday">
+              {{ selectedField ? "This Week" : "Today" }}
+            </v-btn>
+            <v-btn @click="selectedField ? nextWeek() : nextDay()">
+              {{ selectedField ? "Next Week" : "Next Day" }}
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card>
 
-          <v-row v-if="bookingDetails.paymentMethod !== 'none'">
-            <v-col cols="12">
-              <v-radio-group v-model="bookingDetails.paymentType" row>
-                <p>Payment Type</p>
-                <v-radio label="Pay Directly" value="direct"></v-radio>
-                <v-radio value="zalopay">
-                  <template v-slot:label>
-                    <img
-                      src="@/assets/images/1715337285_zNBo0.png"
-                      alt="ZaloPay Logo"
-                      style="
-                        height: 50px;
-                        margin-right: 8px;
-                        filter: contrast(210%) brightness(90%);
-                      "
-                    />
-                    Pay Online via ZaloPay
-                  </template>
-                </v-radio>
-              </v-radio-group>
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="outlined" color="primary" @click="handleBooking">
-          <span
-            v-if="
-              bookingDetails.paymentMethod === 'full' &&
-              bookingDetails.paymentType === 'direct'
-            "
-            >Cash payment!</span
-          >
-          <span
-            v-if="
-              bookingDetails.paymentMethod === 'full' &&
-              bookingDetails.paymentType !== 'direct'
-            "
-            >Online payment!</span
-          >
-          <span
-            v-else-if="
-              bookingDetails.paymentMethod === 'partial' &&
-              bookingDetails.paymentType === 'direct'
-            "
-            >cash deposit</span
-          >
-          <span
-            v-else-if="
-              bookingDetails.paymentMethod === 'partial' &&
-              bookingDetails.paymentType !== 'direct'
-            "
-            >Online deposit</span
-          >
-          <span v-else-if="bookingDetails.paymentMethod === 'none'"
-            >Booking</span
-          >
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+      <v-card v-if="!selectedField">
+        <v-table id="table-booking" fixed-header>
+          <thead>
+            <tr>
+              <th class="text-left">Time</th>
+              <th
+                v-for="field in filteredFields"
+                :key="field.id"
+                class="text-center"
+              >
+                {{ field.name }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(time, index) in timeSlots" :key="time">
+              <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
+              <td v-else class="time-line"></td>
+              <td
+                v-for="field in filteredFields"
+                :key="`${field.id}-${time}`"
+                class="pa-1"
+              >
+                <template v-if="isBookingStart(field.id, index)">
+                  <div
+                    class="booking-block"
+                    :class="{
+                      'status-paid':
+                        getBookingForSlot(field.id, index).status ===
+                        'Đã thanh toán',
+                      'status-booked':
+                        getBookingForSlot(field.id, index).status === 'Đã đặt',
+                      'status-deposit':
+                        getBookingForSlot(field.id, index).status === 'Đã cọc',
+                      'status-cancelled':
+                        getBookingForSlot(field.id, index).status === 'Hủy',
+                    }"
+                    :style="{
+                      height: `${getBookingHeight(field.id, index)}px`,
+                    }"
+                    @click="
+                      viewBookingDetail(getBookingForSlot(field.id, index).id)
+                    "
+                  >
+                    <div class="booking-content">
+                      <p class="text-subtitle-2">
+                        {{
+                          getBookingForSlot(field.id, index).user.name +
+                          " - " +
+                          getBookingForSlot(field.id, index).user.phone
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{
+                          getBookingForSlot(field.id, index).start_time.slice(
+                            0,
+                            5
+                          )
+                        }}
+                        -
+                        {{
+                          getBookingForSlot(field.id, index).end_time.slice(
+                            0,
+                            5
+                          )
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{
+                          formatCurrency(
+                            getBookingForSlot(field.id, index).field_price
+                          )
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{ getBookingForSlot(field.id, index).status }}
+                      </p>
+                    </div>
+                  </div>
+                </template>
+                <v-btn
+                  v-else-if="
+                    !getBookingForSlot(field.id, index) &&
+                    isPastTime(index, selectedDate)
+                  "
+                  block
+                  disabled
+                >
+                  -
+                </v-btn>
+                <v-btn
+                  v-else-if="
+                    !getBookingForSlot(field.id, index) &&
+                    !isPastTime(index, selectedDate)
+                  "
+                  block
+                  @click="handleOpenBooking(field.id, index)"
+                >
+                  +
+                </v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
+
+      <v-card v-else>
+        <v-table id="table-booking-week" fixed-header>
+          <thead>
+            <tr>
+              <th class="text-left">Time</th>
+              <th v-for="day in weekDays" :key="day.date" class="text-center">
+                {{ day.name }} ({{ formatDate(day.date) }})
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(time, index) in timeSlots" :key="time">
+              <td v-if="index % 2 === 0" class="time-line">{{ time }}</td>
+              <td v-else class="time-line"></td>
+              <td
+                v-for="day in weekDays"
+                :key="`${day.date}-${time}`"
+                class="pa-1"
+              >
+                <template v-if="isBookingStart(selectedField, index, day.date)">
+                  <div
+                    class="booking-block"
+                    :class="{
+                      'status-paid':
+                        getBookingForSlot(selectedField, index, day.date)
+                          .status === 'Đã thanh toán',
+                      'status-booked':
+                        getBookingForSlot(selectedField, index, day.date)
+                          .status === 'Đã đặt',
+                      'status-deposit':
+                        getBookingForSlot(selectedField, index, day.date)
+                          .status === 'Đã cọc',
+                      'status-cancelled':
+                        getBookingForSlot(selectedField, index, day.date)
+                          .status === 'Hủy',
+                    }"
+                    :style="{
+                      height: `${getBookingHeight(
+                        selectedField,
+                        index,
+                        day.date
+                      )}px`,
+                    }"
+                    @click="
+                      viewBookingDetail(
+                        getBookingForSlot(selectedField, index, day.date).id
+                      )
+                    "
+                  >
+                    <div class="booking-content">
+                      <p class="text-subtitle-2">
+                        {{
+                          getBookingForSlot(selectedField, index, day.date).user
+                            .name +
+                          " - " +
+                          getBookingForSlot(selectedField, index, day.date).user
+                            .phone
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{
+                          getBookingForSlot(
+                            selectedField,
+                            index,
+                            day.date
+                          ).start_time.slice(0, 5)
+                        }}
+                        -
+                        {{
+                          getBookingForSlot(
+                            selectedField,
+                            index,
+                            day.date
+                          ).end_time.slice(0, 5)
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{
+                          formatCurrency(
+                            getBookingForSlot(selectedField, index, day.date)
+                              .field_price
+                          )
+                        }}
+                      </p>
+                      <p class="text-caption">
+                        {{
+                          getBookingForSlot(selectedField, index, day.date)
+                            .status
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                </template>
+                <v-btn
+                  v-else-if="
+                    !getBookingForSlot(selectedField, index, day.date) &&
+                    isPastTime(index, day.date)
+                  "
+                  block
+                  disabled
+                >
+                  -
+                </v-btn>
+                <v-btn
+                  v-else-if="
+                    !getBookingForSlot(selectedField, index, day.date) &&
+                    !isPastTime(index, day.date)
+                  "
+                  block
+                  @click="handleOpenBooking(selectedField, index, day.date)"
+                >
+                  +
+                </v-btn>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
+      <!-- Dialog -->
+      <v-dialog v-model="isDialogOpen" max-width="500px" height="900px">
+        <v-card height="100%">
+          <v-card-title id="title-model">Book Soccer Field</v-card-title>
+          <v-card-text class="mt-4">
+            <v-form @submit.prevent="handleBooking">
+              <v-row>
+                <!-- Hiển thị ngày booking -->
+                <v-col cols="6">
+                  <v-date-input
+                    class="date-picker"
+                    v-model="selectedDateForm"
+                    label="Select Date"
+                    prepend-icon="mdi-calendar"
+                    clearable
+                    variant="outlined"
+                  ></v-date-input>
+                </v-col>
+
+                <!-- Hiển thị tên sân booking -->
+                <v-col cols="6">
+                  <v-select
+                    v-model="bookingDetails.field"
+                    :items="fields"
+                    item-title="name"
+                    item-value="id"
+                    label="Booking Field"
+                    variant="outlined"
+                    @update:model-value="calculateEndTime"
+                  ></v-select>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="6">
+                  <v-select
+                    v-model="bookingDetails.start_time"
+                    :items="availableStartTimes"
+                    label="Start Time"
+                    @update:model-value="calculateEndTime"
+                  ></v-select>
+                </v-col>
+                <v-col cols="6">
+                  <v-select
+                    v-model="bookingDetails.end_time"
+                    :items="availableEndTimes"
+                    label="End Time"
+                    @update:model-value="calculateEndTime"
+                  ></v-select>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col cols="6">
+                  <v-text-field
+                    v-model="bookingDetails.cost"
+                    label="Cost"
+                    variant="outlined"
+                    readonly
+                    suffix="VND"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="6">
+                  <v-text-field
+                    v-model="bookingDetails.deposit"
+                    label="Deposit"
+                    variant="outlined"
+                    readonly
+                    suffix="VND"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+
+              <!-- Gộp tên và số điện thoại -->
+              <v-row>
+                <v-col>
+                  <v-text-field
+                    :value="
+                      bookingDetails.user.name +
+                      ' - ' +
+                      bookingDetails.user.phone
+                    "
+                    variant="outlined"
+                    readonly
+                    prepend-inner-icon="mdi-account"
+                  >
+                    <template v-slot:append-inner>
+                      <v-icon
+                        v-if="bookingDetails.user.vip === '1'"
+                        class="ml-2"
+                        color="orange-lighten-1"
+                        >mdi-star</v-icon
+                      >
+                    </template>
+                  </v-text-field>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col cols="12">
+                  <v-radio-group v-model="bookingDetails.paymentMethod" row>
+                    <p>Payment Method</p>
+                    <v-radio label="Full Payment (100%)" value="full"></v-radio>
+                    <v-radio label="Partial Deposit (60%)" value="partial"></v-radio>
+                    <v-radio
+                      v-if="bookingDetails.user.vip === '1'"
+                      label="None payment (just for V.I.P)"
+                      value="none"
+                    ></v-radio>
+                  </v-radio-group>
+                </v-col>
+              </v-row>
+
+              <v-row v-if="bookingDetails.paymentMethod !== 'none'">
+                <v-col cols="12">
+                  <v-radio-group v-model="bookingDetails.paymentType" row>
+                    <p class="m-0">Payment Type</p>
+                    <v-radio value="zalopay">
+                      <template v-slot:label>
+                        <img
+                          src="@/assets/images/1715337285_zNBo0.png"
+                          alt="ZaloPay Logo"
+                          style="
+                            height: 50px;
+                            margin-right: 8px;
+                            filter: contrast(210%) brightness(90%);
+                          "
+                        />
+                        Pay Online via ZaloPay
+                      </template>
+                    </v-radio>
+                  </v-radio-group>
+                </v-col>
+              </v-row>
+            </v-form>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn variant="outlined" color="primary" @click="handleBooking">
+              <span
+                v-if="
+                  bookingDetails.paymentMethod === 'full' &&
+                  bookingDetails.paymentType === 'direct'
+                "
+                >Cash payment!</span
+              >
+              <span
+                v-if="
+                  bookingDetails.paymentMethod === 'full' &&
+                  bookingDetails.paymentType !== 'direct'
+                "
+                >Online payment!</span
+              >
+              <span
+                v-else-if="
+                  bookingDetails.paymentMethod === 'partial' &&
+                  bookingDetails.paymentType === 'direct'
+                "
+                >cash deposit</span
+              >
+              <span
+                v-else-if="
+                  bookingDetails.paymentMethod === 'partial' &&
+                  bookingDetails.paymentType !== 'direct'
+                "
+                >Online deposit</span
+              >
+              <span v-else-if="bookingDetails.paymentMethod === 'none'"
+                >Booking</span
+              >
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+    </v-container>
+  </div>
 </template>
 
 <script setup>
@@ -462,9 +452,9 @@ import userService from "../../services/userService";
 import paymentService from "../../services/paymentService";
 import { VDateInput } from "vuetify/labs/VDateInput";
 import { showNotification } from "../../utils/notification";
-
+import { useAuthStore } from "../../stores/auth";
 const router = useRouter();
-
+const authStore = useAuthStore();
 // State variables
 const users = ref([]);
 const fields = ref([]);
@@ -477,7 +467,13 @@ const selectedField = ref(null);
 
 // Booking details
 const bookingDetails = ref({
-  user: { name: "", user_id: "", phone: "", email: "", vip: "" },
+  user: {
+    name: authStore.user.name,
+    user_id: authStore.user.id,
+    phone: authStore.user.phone,
+    email: authStore.user.email,
+    vip: authStore.user.vip,
+  },
   start_time: "",
   end_time: "",
   field: null,
@@ -486,7 +482,7 @@ const bookingDetails = ref({
   cost: null,
   deposit: null,
   paymentMethod: "full",
-  paymentType: "direct",
+  paymentType: "zalopay",
 });
 
 // Time slots
@@ -675,13 +671,19 @@ const handleOpenBooking = (fieldId, index, date) => {
   selectedDateForm.value = selectedDate.value;
   selectedSlot.value = { fieldId, index, date };
   bookingDetails.value = {
-    user: { name: "", user_id: "" },
+    user: {
+      name: authStore.user.name,
+      user_id: authStore.user.id,
+      phone: authStore.user.phone,
+      email: authStore.user.email,
+      vip: authStore.user.vip,
+    },
     start_time: timeSlots[index],
     end_time: timeSlots[index + 1],
     field: fieldId,
     booking_date: date || getLocalDate(selectedDate.value),
     paymentMethod: "full",
-    paymentType: "direct",
+    paymentType: "zalopay",
   };
   calculateEndTime();
   isDialogOpen.value = true;
@@ -812,8 +814,6 @@ const nextDay = () => {
 };
 
 const previousWeek = () => {
-  
-  
   const date = new Date(selectedDate.value);
   date.setDate(date.getDate() - 7);
   selectedDate.value = date;

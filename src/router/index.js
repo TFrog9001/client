@@ -9,11 +9,13 @@ import FieldDetail from '../views/Fileds/FieldDetail.vue';
 import Booking from '../views/Booking/Booking_main.vue'; 
 import BookingDetail from '../views/Booking/BookingDetail.vue';  
 import UserProfile from '../views/Users/UserProfile.vue';
+import Register from '../views/Register.vue';
 
 const routes = [
     { path: '/', redirect: { name: 'Home' } },
     { path: '/home', name: 'Home', component: Home },
     { path: '/login', name: 'Login', component: Login },
+    { path: '/register', name: 'Register', component: Register },
     { path: '/fields', name: 'Fields', component: Fields },
     { path: '/fields/:id', name: 'FieldDetail', component: FieldDetail },
     { path: '/booking', name: 'Booking', component: Booking, meta: { requiresAuth: true } },
