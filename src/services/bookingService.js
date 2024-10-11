@@ -21,12 +21,12 @@ const bookingService = {
             throw error;
         }
     },
-    async createBooking(booking) {
+    async getUserBooking(userId) {
         try {
-            const response = await api.post('/bookings', booking);
+            const response = await api.get(`/user-booking/${userId}`);
             return response;
         } catch (error) {
-            console.error('Có lỗi xảy ra khi tạo booking', error);
+            console.error('Có lỗi xảy ra khi lấy bookings của user:', error);
             throw error;
         }
     },

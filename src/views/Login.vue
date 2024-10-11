@@ -6,7 +6,7 @@
           <el-icon class="login-icon">
             <User />
           </el-icon>
-          <h2 class="login-title teal-darken-2">Login page</h2>
+          <h2 class="login-title teal-darken-2">Đăng nhập</h2>
         </div>
       </template>
       <el-form
@@ -78,7 +78,7 @@ import Cookies from "js-cookie";
 const authStore = useAuthStore();
 const router = useRouter();
 const loading = ref(false);
-const googleLoading = ref(false); // Biến trạng thái loading khi đăng nhập bằng Google
+const googleLoading = ref(false); 
 
 const loginForm = reactive({
   email: "",

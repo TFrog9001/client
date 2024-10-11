@@ -1,7 +1,7 @@
 <template>
   <div id="booking-page" class="bg-grey-lighten-4">
     <v-container>
-      <h1 class="text-h4 text-center mb-6 text-white">Soccer Field Schedule</h1>
+      <h1 class="text-h4 text-center mb-6 text-white">Lịch sân đấu</h1>
 
       <v-card class="mb-4 pa-4">
         <v-row>
@@ -9,7 +9,7 @@
             <v-date-input
               class="date-picker"
               v-model="selectedDate"
-              label="Select Date"
+              label="Chọn ngày"
               prepend-icon="mdi-calendar"
               clearable
               variant="outlined"
@@ -19,7 +19,7 @@
             <v-select
               v-model="selectedField"
               :items="fieldOptions"
-              label="Select Field"
+              label="Chọn sân"
               item-title="name"
               item-value="id"
               variant="outlined"
@@ -30,13 +30,13 @@
         <v-row>
           <v-col cols="12" class="d-flex justify-space-between">
             <v-btn @click="selectedField ? previousWeek() : previousDay()">
-              {{ selectedField ? "Previous Week" : "Previous Day" }}
+              {{ selectedField ? "Tuần trước" : "Ngày trước" }}
             </v-btn>
             <v-btn @click="setToday">
-              {{ selectedField ? "This Week" : "Today" }}
+              {{ selectedField ? "Tuần này" : "Hôm nay" }}
             </v-btn>
             <v-btn @click="selectedField ? nextWeek() : nextDay()">
-              {{ selectedField ? "Next Week" : "Next Day" }}
+              {{ selectedField ? "Tuần sau" : "Ngày sau" }}
             </v-btn>
           </v-col>
         </v-row>
@@ -83,15 +83,17 @@
                       height: `${getBookingHeight(field.id, index)}px`,
                     }"
                     @click="
-                      viewBookingDetail(getBookingForSlot(field.id, index).id)
+                      viewBookingDetail(getBookingForSlot(field.id, index))
                     "
                   >
                     <div class="booking-content">
                       <p class="text-subtitle-2">
                         {{
                           getBookingForSlot(field.id, index).user.name +
-                          " - " +
-                          getBookingForSlot(field.id, index).user.phone
+                          "  -  " +
+                          formatPhoneNumber(
+                            getBookingForSlot(field.id, index).user.phone
+                          )
                         }}
                       </p>
                       <p class="text-caption">
@@ -108,16 +110,6 @@
                             5
                           )
                         }}
-                      </p>
-                      <p class="text-caption">
-                        {{
-                          formatCurrency(
-                            getBookingForSlot(field.id, index).field_price
-                          )
-                        }}
-                      </p>
-                      <p class="text-caption">
-                        {{ getBookingForSlot(field.id, index).status }}
                       </p>
                     </div>
                   </div>
@@ -193,7 +185,7 @@
                     }"
                     @click="
                       viewBookingDetail(
-                        getBookingForSlot(selectedField, index, day.date).id
+                        getBookingForSlot(selectedField, index, day.date)
                       )
                     "
                   >
@@ -269,7 +261,17 @@
       <!-- Dialog -->
       <v-dialog v-model="isDialogOpen" max-width="500px" height="900px">
         <v-card height="100%">
-          <v-card-title id="title-model">Book Soccer Field</v-card-title>
+          <v-card-title id="title-model" class="d-flex justify-space-between"
+            >Đặt sân bóng
+            <v-btn size="small"
+              icon
+              @click="isDialogOpen = false"
+              variant="text"
+              class="close-btn"
+            >
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </v-card-title>
           <v-card-text class="mt-4">
             <v-form @submit.prevent="handleBooking">
               <v-row>
@@ -278,7 +280,7 @@
                   <v-date-input
                     class="date-picker"
                     v-model="selectedDateForm"
-                    label="Select Date"
+                    label="Ngày đặt"
                     prepend-icon="mdi-calendar"
                     clearable
                     variant="outlined"
@@ -292,7 +294,7 @@
                     :items="fields"
                     item-title="name"
                     item-value="id"
-                    label="Booking Field"
+                    label="Sân"
                     variant="outlined"
                     @update:model-value="calculateEndTime"
                   ></v-select>
@@ -303,7 +305,7 @@
                   <v-select
                     v-model="bookingDetails.start_time"
                     :items="availableStartTimes"
-                    label="Start Time"
+                    label="Giờ bắt đầu"
                     @update:model-value="calculateEndTime"
                   ></v-select>
                 </v-col>
@@ -311,7 +313,7 @@
                   <v-select
                     v-model="bookingDetails.end_time"
                     :items="availableEndTimes"
-                    label="End Time"
+                    label="Giờ kết thúc"
                     @update:model-value="calculateEndTime"
                   ></v-select>
                 </v-col>
@@ -321,7 +323,7 @@
                 <v-col cols="6">
                   <v-text-field
                     v-model="bookingDetails.cost"
-                    label="Cost"
+                    label="Tiền phí"
                     variant="outlined"
                     readonly
                     suffix="VND"
@@ -330,7 +332,7 @@
                 <v-col cols="6">
                   <v-text-field
                     v-model="bookingDetails.deposit"
-                    label="Deposit"
+                    label="Tiền dọc (40% phí)"
                     variant="outlined"
                     readonly
                     suffix="VND"
@@ -366,12 +368,15 @@
               <v-row>
                 <v-col cols="12">
                   <v-radio-group v-model="bookingDetails.paymentMethod" row>
-                    <p>Payment Method</p>
-                    <v-radio label="Full Payment (100%)" value="full"></v-radio>
-                    <v-radio label="Partial Deposit (60%)" value="partial"></v-radio>
+                    <p>Lựa chọn thanh toán</p>
+                    <v-radio
+                      label="Thanh toán hết (100%)"
+                      value="full"
+                    ></v-radio>
+                    <v-radio label="Đặt cọc (40%)" value="partial"></v-radio>
                     <v-radio
                       v-if="bookingDetails.user.vip === '1'"
-                      label="None payment (just for V.I.P)"
+                      label="Không cần thanh toán (chỉ dành cho khách V.I.P)"
                       value="none"
                     ></v-radio>
                   </v-radio-group>
@@ -381,7 +386,7 @@
               <v-row v-if="bookingDetails.paymentMethod !== 'none'">
                 <v-col cols="12">
                   <v-radio-group v-model="bookingDetails.paymentType" row>
-                    <p class="m-0">Payment Type</p>
+                    <p class="m-0">Phương thức thanh toán</p>
                     <v-radio value="zalopay">
                       <template v-slot:label>
                         <img
@@ -393,7 +398,7 @@
                             filter: contrast(210%) brightness(90%);
                           "
                         />
-                        Pay Online via ZaloPay
+                        Thanh toán với ZaloPay
                       </template>
                     </v-radio>
                   </v-radio-group>
@@ -407,33 +412,19 @@
               <span
                 v-if="
                   bookingDetails.paymentMethod === 'full' &&
-                  bookingDetails.paymentType === 'direct'
-                "
-                >Cash payment!</span
-              >
-              <span
-                v-if="
-                  bookingDetails.paymentMethod === 'full' &&
                   bookingDetails.paymentType !== 'direct'
                 "
-                >Online payment!</span
-              >
-              <span
-                v-else-if="
-                  bookingDetails.paymentMethod === 'partial' &&
-                  bookingDetails.paymentType === 'direct'
-                "
-                >cash deposit</span
+                >Thanh toán online</span
               >
               <span
                 v-else-if="
                   bookingDetails.paymentMethod === 'partial' &&
                   bookingDetails.paymentType !== 'direct'
                 "
-                >Online deposit</span
+                >Thanh toán cọc online</span
               >
               <span v-else-if="bookingDetails.paymentMethod === 'none'"
-                >Booking</span
+                >Đặt sân</span
               >
             </v-btn>
           </v-card-actions>
@@ -500,7 +491,11 @@ const formatCurrency = (value) => {
     style: "currency",
     currency: "VND",
   });
-  return formatter.format(value);
+  return formatter.format(value).replace("₫", "");
+};
+
+const formatPhoneNumber = (phoneNumber) => {
+  return phoneNumber.replace(/(\d{6})(\d{4})/, "$1****");
 };
 
 // Calculate end time and costs
@@ -667,7 +662,6 @@ const fetchBookings = async () => {
 
 // Handle booking modal open
 const handleOpenBooking = (fieldId, index, date) => {
-  fetchCustomers();
   selectedDateForm.value = selectedDate.value;
   selectedSlot.value = { fieldId, index, date };
   bookingDetails.value = {
@@ -890,8 +884,10 @@ const getStartOfWeek = (date) => {
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
 };
-const viewBookingDetail = (id) => {
-  router.push({ name: "BookingDetail", params: { id: id } });
+const viewBookingDetail = (booking) => {
+  if(authStore.user.id == booking.user_id){
+    router.push({ name: "BookingDetail", params: { id: booking.id } });
+  }
 };
 
 // Watchers
@@ -927,7 +923,7 @@ onMounted(() => {
   transform: scale(1.02);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   overflow: visible;
-  height: calc(100% + 196px) !important;
+  /* height: calc(100% + 196px) !important; */
   z-index: 10 !important;
 }
 

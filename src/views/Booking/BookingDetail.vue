@@ -1,5 +1,6 @@
 <template>
-  <v-row>
+  <div class="container mt-3">
+    <v-row>
     <v-col>
       <div v-if="booking" class="booking-details">
         <h3 class="mt-4 mx-3">Booking Detail</h3>
@@ -114,6 +115,7 @@
       </div>
     </v-col>
   </v-row>
+  </div>
 </template>
 
 <script setup>
@@ -312,7 +314,7 @@ onMounted(() => {
 .chat-box {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 487px;
   border-radius: 10px;
   padding: 10px;
   background-color: #f9f9f9;

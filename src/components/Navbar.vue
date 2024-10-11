@@ -15,7 +15,6 @@
     />
     <v-toolbar-title>Sân Bóng AT</v-toolbar-title>
 
-    <!-- Menu items chỉ hiển thị khi màn hình lớn -->
     <v-row class="d-none d-md-flex justify-center">
       <template v-for="(item, index) in menuItems" :key="index">
         <v-btn :to="item.href" text :class="{ active: isActive(item.href) }">
@@ -27,8 +26,8 @@
     <!-- Tài khoản và đăng xuất -->
     <v-col cols="2" class="d-none d-md-flex justify-end">
       <template v-if="!isAuthenticated">
-        <v-btn text to="/login">Login</v-btn>
-        <v-btn text to="/register">Register</v-btn>
+        <v-btn text to="/login">Đăng nhập</v-btn>
+        <v-btn text to="/register">Đăng ký</v-btn>
       </template>
       <template v-else>
         <v-menu>
@@ -43,10 +42,10 @@
               <v-list-item-title>Tài Khoản</v-list-item-title>
             </v-list-item>
             <v-list-item to="/user-booking">
-              <v-list-item-title>Booking của bạn</v-list-item-title>
+              <v-list-item-title>Lịch sử đặt sân</v-list-item-title>
             </v-list-item>
             <v-list-item @click="logout">
-              <v-list-item-title>Logout</v-list-item-title>
+              <v-list-item-title>Đăng xuất</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
@@ -106,10 +105,10 @@ const userAvatar = ref(
 const userName = ref("Tên Người Dùng");
 
 const menuItems = ref([
-  { title: "Home", href: "/home" },
-  { title: "Booking Field", href: "/booking" },
-  { title: "About Us", href: "/about" },
-  { title: "Contact", href: "/contact" },
+  { title: "Trang chủ", href: "/home" },
+  { title: "Lịch sân", href: "/booking" },
+  { title: "Về chúng tôi", href: "/about" },
+  { title: "Liên hệ", href: "/contact" },
 ]);
 
 const isActive = (path) => route.path === path;
@@ -147,7 +146,7 @@ onMounted(() => {
 }
 
 .active {
-  color: #1976d2 !important;
+  color: #00897B !important;
 }
 
 @media (max-width: 960px) {

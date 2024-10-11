@@ -3,7 +3,12 @@
     <!-- Hero Section -->
     <div class="position-relative">
       <!-- Carousel background -->
-      <v-carousel hide-delimiters :showArrows="false" :cycle="true" :interval="6000">
+      <v-carousel
+        hide-delimiters
+        :showArrows="false"
+        :cycle="true"
+        :interval="6000"
+      >
         <v-carousel-item v-for="(slide, i) in slides" :key="i">
           <div
             :style="`background-image: url(${slide}); background-size: cover; background-position: center; height: 100%;`"
@@ -17,14 +22,14 @@
         <v-row class="justify-center">
           <v-col cols="12">
             <h1 class="display-1 font-weight-bold">
-              Book Your Perfect Soccer Field
+              Đặt sân bóng đá lý tưởng của bạn
             </h1>
             <p class="mx-auto text-gray-500">
-              Find and reserve the best soccer fields in your area. Easy
-              booking, great prices, and top-notch facilities.
+              Tìm và đặt sân vận động bóng đá tốt nhất trong khu vực của bạn.
+              Đặt chỗ dễ dàng, giá cả tuyệt vời và tiện nghi hàng đầu.
             </p>
-            <v-btn color="primary" class="me-4" to="/booking">Book Now</v-btn>
-            <v-btn text color="infor">View Fields</v-btn>
+            <v-btn text color="infor">Xem thông tin sân bóng</v-btn>
+            <v-btn color="primary" class="mx-4" to="/booking">Đặt ngay!</v-btn>
           </v-col>
         </v-row>
       </div>
@@ -32,7 +37,7 @@
 
     <!-- Why Choose Us Section -->
     <v-container class="py-12 py-md-24 py-lg-32 bg-white">
-      <h2 class="display-2 text-center mb-12">Why Choose Us</h2>
+      <h2 class="display-2 text-center mb-12">Tại sao chọn chúng tôi?</h2>
       <v-row>
         <v-col
           v-for="(item, index) in features"
@@ -69,14 +74,14 @@
     <v-container
       class="py-12 py-md-24 py-lg-32 bg-teal-darken-2 text-white text-center"
     >
-      <h2 class="display-2">Ready to Play?</h2>
+      <h2 class="display-2">Sẵn sàng ngay nào!</h2>
 
       <v-col class="text-center">
-        <v-btn color="secondary">Register Now</v-btn>
+        <v-btn color="secondary">Đăng ký ngay tài khoản</v-btn>
       </v-col>
 
       <p class="text-xs text-green-100">
-        By booking, you agree to our terms and conditions.
+        Khi đặt sân, bạn đồng ý với các điều khoản và điều kiện của chúng tôi.
       </p>
     </v-container>
   </div>
@@ -90,18 +95,18 @@ import fieldService from "../services/fieldService";
 const features = ref([
   {
     icon: "mdi-clock",
-    title: "Easy Booking",
-    description: "Book your field in minutes, anytime, anywhere.",
+    title: "Đặt Sân Dễ Dàng",
+    description: "Đặt sân chỉ trong vài phút, bất cứ lúc nào, ở bất kỳ đâu.",
   },
   {
     icon: "mdi-map-marker",
-    title: "Prime Locations",
-    description: "Access to the best fields in your area.",
+    title: "Vị Trí Đắc Địa",
+    description: "Tiếp cận các sân bóng tốt nhất trong khu vực của bạn.",
   },
   {
     icon: "mdi-shield",
-    title: "Secure Payments",
-    description: "Safe and secure online transactions.",
+    title: "Thanh Toán An Toàn",
+    description: "Giao dịch trực tuyến an toàn và bảo mật.",
   },
 ]);
 

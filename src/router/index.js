@@ -6,7 +6,7 @@ import Home from '../views/Home.vue';
 import NotFound from '../views/NotFound.vue';
 import Fields from '../views/Fileds/Fields.vue';  
 import FieldDetail from '../views/Fileds/FieldDetail.vue'; 
-import Booking from '../views/Booking/Booking_main.vue'; 
+import Booking from '../views/Booking/Booking.vue'; 
 import BookingDetail from '../views/Booking/BookingDetail.vue';  
 import UserProfile from '../views/Users/UserProfile.vue';
 import Register from '../views/Register.vue';
@@ -20,7 +20,8 @@ const routes = [
     { path: '/fields/:id', name: 'FieldDetail', component: FieldDetail },
     { path: '/booking', name: 'Booking', component: Booking, meta: { requiresAuth: true } },
     { path: '/booking/:id', name: 'BookingDetail', component: BookingDetail, meta: { requiresAuth: true } },
-    { path: '/profile', name: 'UserProfile', component: UserProfile, meta: { requiresAuth: true } },
+    { path: '/account', name: 'UserProfile', component: UserProfile, meta: { requiresAuth: true } },
+    { path: '/user-booking', name: 'UserBooking', component: UserProfile, meta: { requiresAuth: true } },
     { path: '/:catchAll(.*)', name: 'NotFound', component: NotFound },
 ];
 
