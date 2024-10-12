@@ -184,20 +184,20 @@
           <div class="mt-4 d-flex flex-row-reverse">
             <button
               class="btn btn-primary"
-              :disabled="currentPage === 1"
-              @click="prevPage"
+              :disabled="currentPage === totalPages"
+              @click="nextPage"
             >
-              Previous
+              Next
             </button>
             <span class="mx-1 mt-1"
               >Page {{ currentPage }} of {{ totalPages }}</span
             >
             <button
               class="btn btn-primary"
-              :disabled="currentPage === totalPages"
-              @click="nextPage"
+              :disabled="currentPage === 1"
+              @click="prevPage"
             >
-              Next
+              Previous
             </button>
           </div>
         </div>

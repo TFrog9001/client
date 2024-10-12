@@ -28,8 +28,8 @@
               Tìm và đặt sân vận động bóng đá tốt nhất trong khu vực của bạn.
               Đặt chỗ dễ dàng, giá cả tuyệt vời và tiện nghi hàng đầu.
             </p>
-            <v-btn text color="infor">Xem thông tin sân bóng</v-btn>
-            <v-btn color="primary" class="mx-4" to="/booking">Đặt ngay!</v-btn>
+            <v-btn text color="infor" class="my-1">Xem thông tin sân bóng</v-btn>
+            <v-btn color="primary" class="mx-4 my-1" to="/booking">Đặt ngay!</v-btn>
           </v-col>
         </v-row>
       </div>

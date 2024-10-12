@@ -195,8 +195,10 @@
                           getBookingForSlot(selectedField, index, day.date).user
                             .name +
                           " - " +
-                          getBookingForSlot(selectedField, index, day.date).user
-                            .phone
+                          formatPhoneNumber(
+                            getBookingForSlot(selectedField, index, day.date)
+                              .user.phone
+                          )
                         }}
                       </p>
                       <p class="text-caption">
@@ -214,20 +216,6 @@
                             index,
                             day.date
                           ).end_time.slice(0, 5)
-                        }}
-                      </p>
-                      <p class="text-caption">
-                        {{
-                          formatCurrency(
-                            getBookingForSlot(selectedField, index, day.date)
-                              .field_price
-                          )
-                        }}
-                      </p>
-                      <p class="text-caption">
-                        {{
-                          getBookingForSlot(selectedField, index, day.date)
-                            .status
                         }}
                       </p>
                     </div>
@@ -263,7 +251,8 @@
         <v-card height="100%">
           <v-card-title id="title-model" class="d-flex justify-space-between"
             >Đặt sân bóng
-            <v-btn size="small"
+            <v-btn
+              size="small"
               icon
               @click="isDialogOpen = false"
               variant="text"
@@ -885,7 +874,7 @@ const getStartOfWeek = (date) => {
   return new Date(d.setDate(diff));
 };
 const viewBookingDetail = (booking) => {
-  if(authStore.user.id == booking.user_id){
+  if (authStore.user.id == booking.user_id) {
     router.push({ name: "BookingDetail", params: { id: booking.id } });
   }
 };
@@ -923,7 +912,7 @@ onMounted(() => {
   transform: scale(1.02);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   overflow: visible;
-  /* height: calc(100% + 196px) !important; */
+  height: calc(100% + 48px) !important;
   z-index: 10 !important;
 }
 

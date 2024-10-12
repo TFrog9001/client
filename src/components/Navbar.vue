@@ -2,7 +2,7 @@
   <v-app-bar>
     <!-- Chỉ hiển thị nút menu icon khi màn hình nhỏ -->
     <v-app-bar-nav-icon
-      class="d-md-none"
+      class="d-sm-none"
       @click="drawer = !drawer"
     ></v-app-bar-nav-icon>
 
@@ -59,25 +59,25 @@
       <v-list-item
         v-for="(item, index) in menuItems"
         :key="index"
-        :href="item.href"
+        :to="item.href"
         :class="{ active: isActive(item.href) }"
       >
         <v-list-item-title>{{ item.title }}</v-list-item-title>
       </v-list-item>
       <v-divider></v-divider>
       <template v-if="!isAuthenticated">
-        <v-list-item href="/login">
+        <v-list-item to="/login">
           <v-list-item-title>Login</v-list-item-title>
         </v-list-item>
-        <v-list-item href="/register">
+        <v-list-item to="/register">
           <v-list-item-title>Register</v-list-item-title>
         </v-list-item>
       </template>
       <template v-else>
-        <v-list-item href="/account">
+        <v-list-item to="/account">
           <v-list-item-title>My account</v-list-item-title>
         </v-list-item>
-        <v-list-item href="/user-booking">
+        <v-list-item to="/user-booking">
           <v-list-item-title>My Booking History</v-list-item-title>
         </v-list-item>
         <v-list-item @click="logout">
