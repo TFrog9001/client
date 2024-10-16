@@ -1,120 +1,133 @@
 <template>
   <div class="container mt-3">
     <v-row>
-    <v-col>
-      <div v-if="booking" class="booking-details">
-        <h3 class="mt-4 mx-3">Booking Detail</h3>
-        <div class="booking-info mx-6">
-          <p>
-            <strong>Customer Name:</strong> <span>{{ booking.user.name }}</span>
-          </p>
-          <p>
-            <strong>Phone:</strong> <span>{{ booking.user.phone }}</span>
-          </p>
-          <p>
-            <strong>Email:</strong> <span>{{ booking.user.email }}</span>
-          </p>
-        </div>
-        <div class="booking-info mx-6">
-          <p>
-            <strong>Field:</strong> <span>{{ booking.field.name }}</span>
-          </p>
-          <p>
-            <strong>Booking Date:</strong>
-            <span>{{ formatDate(booking.booking_date) }}</span>
-          </p>
-          <p>
-            <strong>Time Frame:</strong>
-            <span
-              >{{ formatTime(booking.start_time) }} &nbsp---&nbsp
-              {{ formatTime(booking.end_time) }}</span
-            >
-          </p>
-          <p>
-            <strong>Field Fee:</strong>
-            <span>{{ formatCurrency(booking.field_price) }} VND</span>
-          </p>
-          <p>
-            <strong>Deposit:</strong>
-            <span class="text-error"
-              >{{ formatCurrency(booking.deposit) }} VND</span
-            >
-          </p>
-          <p>
-            <strong>Status:</strong> <span>{{ booking.status }}</span>
-          </p>
-        </div>
-        <div class="booking-info mx-6 mb-5">
-          <v-progress-linear
-            color="light-blue"
-            height="20"
-            :model-value="progress"
-            striped
-          >
-            <template v-slot:default="{ value }">
-              <strong>{{ Math.ceil(value) }}%</strong>
-            </template>
-          </v-progress-linear>
-        </div>
-      </div>
-      <div v-else class="booking-details pa-10">
-        <v-skeleton-loader type="paragraph"></v-skeleton-loader>
-      </div>
-    </v-col>
-    <v-col>
-      <div class="chat-box">
-        <div class="messages" ref="messagesContainer">
-          <div
-            v-for="(msg, index) in messages"
-            :key="index"
-            class="message-container"
-            :class="{
-              'message-sent': isSentMessage(msg),
-              'message-received': !isSentMessage(msg),
-            }"
-            @click="
-              hoveredMessageIndex = hoveredMessageIndex === index ? null : index
-            "
-          >
-            <div class="avatar" v-if="!isSentMessage(msg)">
-              <img
-                :src="
-                  msg.user.avatar ||
-                  'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
-                "
-                alt="Avatar"
-              />
-            </div>
-
-            <div class="message-content">
-              <div
-                class="user-name text-capitalize text-decoration-underline"
-                v-if="!isSentMessage(msg)"
+      <v-col>
+        <div v-if="booking" class="booking-details">
+          <h3 class="mt-4 mx-3">
+            Chi tiết phiếu đặt sân <strong>#{{ booking.id }}</strong>
+          </h3>
+          <div class="booking-info mx-6">
+            <p>
+              <strong>Người đặt</strong> <span>{{ booking.user.name }}</span>
+            </p>
+            <p>
+              <strong>Số điện thoại:</strong>
+              <span>{{ booking.user.phone }}</span>
+            </p>
+            <p>
+              <strong>Email:</strong>
+              <span>{{ booking.user.email ?? "null" }}</span>
+            </p>
+          </div>
+          <div class="booking-info mx-6">
+            <p>
+              <strong>Sân:</strong> <span>{{ booking.field.name }}</span>
+            </p>
+            <p>
+              <strong>Ngày đặt:</strong>
+              <span>{{ formatDate(booking.booking_date) }}</span>
+            </p>
+            <p>
+              <strong>Khung giờ:</strong>
+              <span
+                >{{ formatTime(booking.start_time) }} &nbsp---&nbsp
+                {{ formatTime(booking.end_time) }}</span
               >
-                {{ msg.user.name }}
+            </p>
+            <p>
+              <strong>Phí sân:</strong>
+              <span>{{ formatCurrency(booking.field_price) }} VND</span>
+            </p>
+            <p>
+              <strong>Tiền đã cọc:</strong>
+              <span class="text-error"
+                >{{ formatCurrency(booking.deposit) }} VND</span
+              >
+            </p>
+            <p>
+              <strong>Thanh toán:</strong>
+              <span :class="getStatusClass(booking.status)">{{
+                booking.status
+              }}</span>
+            </p>
+          </div>
+          <div class="booking-info mx-6 mb-5">
+            <v-progress-linear
+              color="light-blue"
+              height="20"
+              :model-value="progress"
+              striped
+            >
+              <template v-slot:default="{ value }">
+                <strong>{{ Math.ceil(value) }}%</strong>
+              </template>
+            </v-progress-linear>
+          </div>
+        </div>
+        <div v-else class="booking-details pa-10">
+          <v-skeleton-loader type="paragraph"></v-skeleton-loader>
+        </div>
+      </v-col>
+      <v-col>
+        <div class="chat-box">
+          <div class="messages" ref="messagesContainer">
+            <div
+              v-for="(msg, index) in messages"
+              :key="index"
+              class="message-container"
+              :class="{
+                'message-sent': isSentMessage(msg),
+                'message-received': !isSentMessage(msg),
+              }"
+              @click="
+                hoveredMessageIndex =
+                  hoveredMessageIndex === index ? null : index
+              "
+            >
+              <div class="avatar" v-if="!isSentMessage(msg)">
+                <img
+                  :src="
+                    msg.user.avatar ||
+                    'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
+                  "
+                  alt="Avatar"
+                />
               </div>
-              <div class="message-text">{{ msg.message }}</div>
-              <div class="timestamp" v-if="hoveredMessageIndex === index">
-                {{ formatDateTooltip(msg.created_at) }}
+
+              <div class="message-content">
+                <div
+                  class="user-name text-capitalize text-decoration-underline"
+                  v-if="!isSentMessage(msg)"
+                >
+                  {{ msg.user.name }}
+                </div>
+                <div class="message-text">{{ msg.message }}</div>
+                <div class="timestamp" v-if="hoveredMessageIndex === index">
+                  {{ formatDateTooltip(msg.created_at) }}
+                </div>
               </div>
             </div>
           </div>
+          <div class="chat-input">
+            <input
+              v-model="newMessage"
+              @keyup.enter="handleSendMessage"
+              placeholder="Type a message..."
+            />
+            <v-btn
+              prepend-icon="mdi-send"
+              size="large"
+              @click="handleSendMessage"
+            ></v-btn>
+          </div>
         </div>
-        <div class="chat-input">
-          <input
-            v-model="newMessage"
-            @keyup.enter="handleSendMessage"
-            placeholder="Type a message..."
-          />
-          <v-btn
-            prepend-icon="mdi-send"
-            size="large"
-            @click="handleSendMessage"
-          ></v-btn>
-        </div>
-      </div>
-    </v-col>
-  </v-row>
+      </v-col>
+    </v-row>
+    <v-row>
+      <v-col>
+        <SupplyTable v-if="booking" :booking-id="bookingId" :bill="bill" />
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -123,11 +136,13 @@ import { ref, onMounted, getCurrentInstance, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import chatService from "../../services/chatService";
 import bookingService from "../../services/bookingService";
+import SupplyTable from "./SupplyTable.vue";
 
 const route = useRoute();
 const bookingId = route.params.id;
 
 const booking = ref(null);
+const bill = ref(null);
 const messages = ref([]);
 const newMessage = ref("");
 const hoveredMessageIndex = ref(null);
@@ -163,6 +178,7 @@ const fetchBooking = async () => {
   try {
     const response = await bookingService.getBookingById(bookingId);
     booking.value = response.data;
+    bill.value = booking.value.bill;
     calculateProgress();
   } catch (error) {
     console.error("Error fetching booking:", error);
@@ -236,6 +252,21 @@ const formatDateTooltip = (dateString) => {
     second: "2-digit",
   };
   return date.toLocaleDateString("en-GB", options);
+};
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case "Đã thanh toán":
+      return "status-paid";
+    case "Đã đặt":
+      return "status-booked";
+    case "Đã cọc":
+      return "status-deposited";
+    case "Hủy":
+      return "status-cancelled";
+    default:
+      return "";
+  }
 };
 
 // Định dạng tiền tệ

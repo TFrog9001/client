@@ -9,7 +9,7 @@ import Footer from "./components/Footer.vue";
     <v-app>
       <Navbar />
       <v-main minHeight="698">
-          <router-view></router-view>
+        <router-view></router-view>
       </v-main>
       <v-footer>
         <Footer />
@@ -20,4 +20,24 @@ import Footer from "./components/Footer.vue";
 
 <script></script>
 
-<style scoped></style>
+<style scope>
+#main-content {
+  background-color: #eee;
+}
+
+.status-paid {
+  color: #2d8d30; /* Màu xanh lá cây cho Đã thanh toán */
+}
+
+.status-booked {
+  color: #2196f3; /* Màu xanh dương cho Đã đặt */
+}
+
+.status-deposited {
+  color: #ff9800; /* Màu cam cho Đã cọc */
+}
+
+.status-cancelled {
+  color: #f44336; /* Màu đỏ cho Hủy */
+}
+</style>
