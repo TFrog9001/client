@@ -17,6 +17,16 @@ const serviceService = {
         }
     },
 
+    async getServicesWithStaff() {
+        try {
+            const response = await api.get(`/services/staff`);
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi lấy dịch vụ', error);
+            throw error;
+        }
+    },
+
     async createService(data) {
         try {
             const response = await api.post(`/services`, data);

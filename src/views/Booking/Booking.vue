@@ -737,7 +737,7 @@ const fetchBookings = async () => {
 
 const fetchServices = async () => {
   // Giả sử bạn có một service để lấy danh sách dịch vụ
-  const response = await serviceService.getServices();
+  const response = await serviceService.getServicesWithStaff();
   services.value = response.data;
 };
 

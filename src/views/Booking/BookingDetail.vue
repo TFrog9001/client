@@ -1,5 +1,5 @@
 <template>
-  <div class="container mt-3">
+  <div class="container">
     <v-row>
       <v-col>
         <div v-if="booking" class="booking-details">
@@ -30,25 +30,47 @@
             <p>
               <strong>Khung giờ:</strong>
               <span
-                >{{ formatTime(booking.start_time) }} &nbsp---&nbsp
+                >{{ formatTime(booking.start_time) }} -
                 {{ formatTime(booking.end_time) }}</span
               >
             </p>
             <p>
               <strong>Phí sân:</strong>
-              <span>{{ formatCurrency(booking.field_price) }} VND</span>
+              <span>{{ formatCurrency(booking.field_price) }}</span>
+            </p>
+            <p v-if="booking.bill.services && booking.bill.services.length > 0">
+              <strong>Phí dịch vụ:</strong>
+              <span>{{ formatCurrency(serviceFees) }}</span>
+            </p>
+            <p v-if="booking.bill.supplies && booking.bill.supplies.length > 0">
+              <strong>Phí tiện ích:</strong>
+              <span>{{ formatCurrency(supplyFees) }}</span>
             </p>
             <p>
               <strong>Tiền đã cọc:</strong>
-              <span class="text-error"
-                >{{ formatCurrency(booking.deposit) }} VND</span
-              >
+              <span class="status-cancelled currency-amount">{{
+                '- '+formatCurrency(booking.deposit)
+              }}</span>
             </p>
             <p>
               <strong>Thanh toán:</strong>
-              <span :class="getStatusClass(booking.status)">{{
-                booking.status
+              <span class="text-success currency-amount">{{
+                formatCurrency(totalAmountDue)
               }}</span>
+            </p>
+
+            <p v-if="booking.bill.status == 'Đã thanh toán'">
+              <strong>Tổng:</strong>
+              <span :class="getStatusClass(booking.bill.status)">
+                {{ formatCurrency(booking.bill.total_amount) }}
+              </span>
+            </p>
+
+            <p>
+              <strong>Trạng thái:</strong>
+              <span :class="getStatusClass(booking.bill.status)">
+                {{ booking.bill.status }}
+              </span>
             </p>
           </div>
           <div class="booking-info mx-6 mb-5">
@@ -56,16 +78,13 @@
               color="light-blue"
               height="20"
               :model-value="progress"
-              striped
+              :striped="progress != 100"
             >
               <template v-slot:default="{ value }">
                 <strong>{{ Math.ceil(value) }}%</strong>
               </template>
             </v-progress-linear>
           </div>
-        </div>
-        <div v-else class="booking-details pa-10">
-          <v-skeleton-loader type="paragraph"></v-skeleton-loader>
         </div>
       </v-col>
       <v-col>
@@ -124,18 +143,59 @@
       </v-col>
     </v-row>
     <v-row>
+      <v-col cols="5">
+        <div v-if="services && services.length" class="service-table">
+          <h4 class="mb-3">Dịch vụ đã chọn</h4>
+          <table class="table table-bordered table-responsive">
+            <thead>
+              <tr>
+                <th>Dịch vụ</th>
+                <th>Mô tả</th>
+                <th>Nhân viên</th>
+                <th>Phí</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="service in services" :key="service.id">
+                <td>{{ service.service.service }}</td>
+                <td>{{ service.service.description }}</td>
+                <td>
+                  <v-avatar
+                    :image="
+                      service.staff.avatar ||
+                      'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
+                    "
+                  ></v-avatar>
+                  {{ service.staff.name }}
+                </td>
+                <td>{{ formatCurrency(service.fee) }} VND</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </v-col>
+    </v-row>
+    <v-row>
       <v-col>
-        <SupplyTable v-if="booking" :booking-id="bookingId" :bill="bill" />
+        <SupplyTable
+          v-if="booking"
+          :booking-id="bookingId"
+          :bill="bill"
+          :totalAmountDue="totalAmountDue"
+          @payment-success="fetchBooking"
+          @updateBooking="fetchBooking"
+        />
       </v-col>
     </v-row>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, getCurrentInstance, nextTick } from "vue";
+import { ref, onMounted, getCurrentInstance, nextTick, computed } from "vue";
 import { useRoute } from "vue-router";
 import chatService from "../../services/chatService";
 import bookingService from "../../services/bookingService";
+
 import SupplyTable from "./SupplyTable.vue";
 
 const route = useRoute();
@@ -143,6 +203,7 @@ const bookingId = route.params.id;
 
 const booking = ref(null);
 const bill = ref(null);
+const services = ref(null);
 const messages = ref([]);
 const newMessage = ref("");
 const hoveredMessageIndex = ref(null);
@@ -178,12 +239,44 @@ const fetchBooking = async () => {
   try {
     const response = await bookingService.getBookingById(bookingId);
     booking.value = response.data;
+
     bill.value = booking.value.bill;
+
+    services.value = booking.value.bill.services;
     calculateProgress();
   } catch (error) {
     console.error("Error fetching booking:", error);
   }
 };
+
+// Tính tổng phí dịch vụ
+const serviceFees = computed(() => {
+  if (!booking.value || !booking.value.bill || !booking.value.bill.services)
+    return 0;
+  return booking.value.bill.services.reduce(
+    (total, service) => total + parseFloat(service.fee),
+    0
+  );
+});
+
+// Tính tổng phí tiện ích
+const supplyFees = computed(() => {
+  if (!booking.value || !booking.value.bill || !booking.value.bill.supplies)
+    return 0;
+  return booking.value.bill.supplies.reduce(
+    (total, supply) => total + supply.quantity * parseFloat(supply.price),
+    0
+  );
+});
+
+// Tính tổng số tiền cần thanh toán sau khi trừ cọc
+const totalAmountDue = computed(() => {
+  if (!booking.value) return 0;
+  const fieldPrice = parseFloat(booking.value.field_price);
+  const deposit = parseFloat(booking.value.deposit) || 0;
+  const totalBill = fieldPrice + serviceFees.value + supplyFees.value;
+  return totalBill - deposit;
+});
 
 const fecthMessage = async () => {
   try {
@@ -243,7 +336,7 @@ const formatTime = (timeString) => {
 const formatDateTooltip = (dateString) => {
   const date = new Date(dateString);
   const options = {
-    weekday: "long", // Thứ
+    weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -252,21 +345,6 @@ const formatDateTooltip = (dateString) => {
     second: "2-digit",
   };
   return date.toLocaleDateString("en-GB", options);
-};
-
-const getStatusClass = (status) => {
-  switch (status) {
-    case "Đã thanh toán":
-      return "status-paid";
-    case "Đã đặt":
-      return "status-booked";
-    case "Đã cọc":
-      return "status-deposited";
-    case "Hủy":
-      return "status-cancelled";
-    default:
-      return "";
-  }
 };
 
 // Định dạng tiền tệ
@@ -280,6 +358,23 @@ const formatCurrency = (amount) => {
     .replace("₫", "");
 };
 
+const getStatusClass = (status) => {
+  switch (status) {
+    case "Đã thanh toán":
+      return "status-paid";
+    case "Đã đặt":
+      return "status-booked";
+    case "Đã cọc":
+      return "status-deposited";
+    case "Hủy":
+      return "status-cancelled";
+    case "Chưa thanh toán":
+      return "status-cancelled";
+    default:
+      return "";
+  }
+};
+
 // Lắng nghe tin nhắn mới qua WebSocket
 function listenForMessages() {
   const instance = getCurrentInstance();
@@ -288,10 +383,12 @@ function listenForMessages() {
     echo
       .private(`booking.${bookingId}`)
       .listen("MessageSent", async (event) => {
+        console.log(event);
+
         messages.value.push({
           message: event.message,
           user_id: event.user_id,
-          user: event.user, // Gửi user cùng với tin nhắn từ event
+          user: event.user,
           created_at: event.created_at,
         });
 
@@ -316,7 +413,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  height: 487px;
+  height: 550px;
   background-color: #f9f9f9;
   border: 1px solid #ccc;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -327,9 +424,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  align-items: flex-start;
+  /* align-items: flex-start; */
   flex-wrap: wrap;
-  margin-bottom: 55px;
+  margin-bottom: 30px;
+  align-content: space-between;
 }
 
 .booking-info p {
@@ -342,10 +440,21 @@ onMounted(() => {
   min-width: 150px;
 }
 
+.booking-info > p > span {
+  display: inline-block;
+  min-width: 100px;
+  text-align: right;
+}
+
+.booking-info p {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+}
 .chat-box {
   display: flex;
   flex-direction: column;
-  height: 487px;
+  height: 550px;
   border-radius: 10px;
   padding: 10px;
   background-color: #f9f9f9;
@@ -356,7 +465,7 @@ onMounted(() => {
 
 .messages {
   flex-grow: 1;
-  max-height: 383px;
+  max-height: 470px;
   overflow-y: auto;
   padding: 10px;
   margin-bottom: 15px;

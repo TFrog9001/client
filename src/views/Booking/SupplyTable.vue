@@ -1,29 +1,78 @@
 <template>
-  <div>
-    <v-btn prepend-icon="mdi-menu" color="primary" @click="showMenu = true">
-      Thêm item
+  <div class="container-fluid">
+    <v-btn
+      prepend-icon="mdi-menu"
+      color="primary"
+      @click="showMenu = true"
+      :hidden="props.bill.status !== 'Chưa thanh toán'"
+    >
+      Thêm tiện ích
     </v-btn>
     <v-divider></v-divider>
     <!-- Bảng hiển thị các item đã thêm -->
-    <v-table>
+    <table class="table table-bordered table-responsive">
       <thead>
         <tr>
-          <th>Tên item</th>
-          <th>Số lượng</th>
+          <th>Tên sản phẩm</th>
+          <th style="width: 10%">Số lượng</th>
           <th>Giá</th>
           <th>Tổng tiền</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in addedItems" :key="item.id">
-          <td>{{ item.supply.name }}</td>
-          <td>{{ item.quantity }}</td>
+          <td>
+            <div
+              class="d-flex justify-content-between align-items-center"
+              style="height: 100%"
+            >
+              <span class="text-start">{{ item.supply.name }}</span>
+              <img
+                v-if="item.supply.image"
+                :src="`http://127.0.0.1:8000/storage/${item.supply.image}`"
+                alt="Product Image"
+                width="50"
+                height="50"
+                class="ms-2"
+              />
+            </div>
+          </td>
+          <td>
+            <input
+              type="number"
+              v-model.number="item.quantity"
+              @change="handleQuantityChange(item)"
+              min="0"
+            />
+          </td>
           <td>{{ formatCurrency(item.price) }} VND</td>
           <td>{{ formatCurrency(item.quantity * item.price) }} VND</td>
         </tr>
       </tbody>
-    </v-table>
+    </table>
+    <v-divider></v-divider>
 
+    <div class="my-2" v-if="props.bill.status == 'Chưa thanh toán'">
+      <div></div>
+      <h4>Thanh toán: {{ formatCurrency(billTotalAmount) }} VND</h4>
+      <v-radio-group v-model="paymentMethod">
+        <v-radio label="ZaloPay" value="zalopay">
+          <template v-slot:label>
+            <img
+              src="@/assets/images/1715337285_zNBo0.png"
+              alt="ZaloPay Logo"
+              style="
+                height: 50px;
+                margin-right: 8px;
+                filter: contrast(210%) brightness(90%);
+              "
+            />
+            Thanh toán với ZaloPay
+          </template>
+        </v-radio>
+      </v-radio-group>
+      <v-btn color="primary" @click="processPayment">Xác nhận thanh toán</v-btn>
+    </div>
     <!-- Popup để hiển thị danh sách đồ uống -->
     <v-dialog v-model="showMenu" persistent max-width="600px">
       <v-card>
@@ -63,7 +112,10 @@
                 md="6"
               >
                 <v-card>
-                  <v-img :src="item.image" height="150px"></v-img>
+                  <v-img
+                    :src="`http://127.0.0.1:8000/storage/${item.image}`"
+                    height="150px"
+                  ></v-img>
                   <v-card-title>{{ item.name }}</v-card-title>
                   <v-card-subtitle>
                     Giá: {{ formatCurrency(item.price) }} VND<br />
@@ -123,7 +175,22 @@
               </thead>
               <tbody>
                 <tr v-for="item in tempItems" :key="item.id">
-                  <td>{{ item.name }}</td>
+                  <td>
+                    <div
+                      class="d-flex justify-content-between align-items-center"
+                      style="height: 100%"
+                    >
+                      <span class="text-start">{{ item.name }}</span>
+                      <img
+                        v-if="item.image"
+                        :src="`http://127.0.0.1:8000/storage/${item.image}`"
+                        alt="Product Image"
+                        width="50"
+                        height="50"
+                        class="ms-2"
+                      />
+                    </div>
+                  </td>
                   <td>{{ item.quantity }}</td>
                   <td>{{ formatCurrency(item.price) }} VND</td>
                   <td>{{ formatCurrency(item.total) }} VND</td>
@@ -161,15 +228,9 @@
 import { ref, computed, onMounted, defineProps, watch } from "vue";
 import supplyService from "../../services/supplyService";
 import billService from "../../services/billService";
+import paymentSerice from "../../services/paymentService";
 
 import { showNotification } from "../../utils/notification";
-
-const showMenu = ref(false);
-const search = ref("");
-const loadingSearch = ref(false);
-const items = ref([]);
-const tempItems = ref([]);
-const addedItems = ref([]);
 
 const props = defineProps({
   bookingId: {
@@ -181,6 +242,82 @@ const props = defineProps({
     required: true,
   },
 });
+
+const emit = defineEmits(["paymentSuccess"]);
+
+const showMenu = ref(false);
+const search = ref("");
+const loadingSearch = ref(false);
+const items = ref([]);
+const tempItems = ref([]);
+const addedItems = ref([]);
+const paymentMethod = ref("zalopay");
+const billTotalAmount = ref(props.bill.total_amount);
+
+const deleteDialog = ref(false);
+const itemToDelete = ref(null);
+
+// Mở popup xác nhận xóa
+const openDeleteDialog = (item) => {
+  itemToDelete.value = item;
+  deleteDialog.value = true;
+
+  console.log(itemToDelete.value);
+};
+
+const confirmDelete = async () => {
+  try {
+    await billService.removeItem(props.bill.id, itemToDelete.value.id);
+
+    billTotalAmount.value -=
+      itemToDelete.value.quantity * itemToDelete.value.price;
+    addedItems.value = addedItems.value.filter(
+      (item) => item.id !== itemToDelete.value.id
+    );
+    showNotification({
+      title: "Xóa thành công",
+      message: `Đã xóa ${itemToDelete.value.supply.name} thành công`,
+      type: "success",
+    });
+    deleteDialog.value = false;
+    emit("updateBooking");
+  } catch (error) {
+    console.error("Lỗi khi xóa:", error);
+    showNotification({
+      title: "Lỗi",
+      message: "Có lỗi xảy ra khi xóa item.",
+      type: "error",
+    });
+  }
+};
+
+// Handle quantity change
+const handleQuantityChange = (item) => {
+  item.isEdited = true;
+  if (item.quantity <= 0) {
+    openDeleteDialog(item);
+  }
+};
+
+// Cập nhật số lượng item
+const updateItemQuantity = async (item) => {
+  try {
+    await billService.updateItemQuantity(item.id, item.quantity);
+    showNotification({
+      title: "Cập nhật thành công",
+      message: `Đã cập nhật số lượng cho ${item.supply.name}`,
+      type: "success",
+    });
+    item.isEdited = false;
+  } catch (error) {
+    console.error("Lỗi khi cập nhật số lượng:", error);
+    showNotification({
+      title: "Lỗi",
+      message: "Có lỗi xảy ra khi cập nhật số lượng.",
+      type: "error",
+    });
+  }
+};
 
 const validateQuantity = (item) => {
   if (item.quantity <= 0) {
@@ -249,14 +386,26 @@ const confirmItems = async () => {
 
     addedItems.value = rp.data;
 
+    console.log(rp.data);
+
     console.log(response.data);
+
+    const additionalAmount = tempItems.value.reduce((total, item) => {
+      return total + item.quantity * item.price;
+    }, 0);
+
+    // Cộng dồn vào tổng tiền hiện tại và làm tròn để loại bỏ sai số thập phân
+    billTotalAmount.value = Math.round(
+      billTotalAmount.value + additionalAmount
+    );
+    console.log(billTotalAmount.value);
 
     showNotification({
       title: "Thông báo",
-      message: response.data.message, 
+      message: response.data.message,
       type: "success",
     });
-
+    emit("updateBooking");
     closeMenu();
   } catch (error) {
     console.error("Có lỗi xảy ra khi thêm sản phẩm:", error);
@@ -307,10 +456,80 @@ watch(showMenu, (newValue) => {
     fetchSupplies();
   }
 });
+// thanh toan
+const processPayment = async () => {
+  console.log(paymentMethod.value);
+  // const response = await billService.createBill(props.bill.id);
+  // console.log(response.data);
+
+  // if (paymentMethod.value == "zalopay") {
+
+  // }
+
+  if (paymentMethod.value === "zalopay") {
+    try {
+      const zaloPayResult = await paymentSerice.createZalopayBill(
+        props.bill.id
+      );
+      const qr_url = zaloPayResult.data.zalopay.order_url;
+
+      const popup = window.open(qr_url, "_blank", "width=500,height=600");
+
+      // Check if the popup was successfully created
+      if (popup) {
+        const timer = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(timer);
+            // showNotification({
+            //   title: "Thông báo",
+            //   message: "Thanh toán hóa đơn thành công",
+            //   type: "success",
+            // });
+            emit("paymentSuccess");
+          }
+        }, 500);
+      } else {
+        console.error("Popup was blocked or failed to open.");
+      }
+    } catch (error) {
+      console.error("Error creating ZaloPay payment:", error);
+    }
+  } else {
+    try {
+      const respone = await billService.paymentBill(props.bill.id);
+
+      console.log(respone);
+
+      showNotification({
+        title: "Thông báo",
+        message: "Đã thanh toán thành công",
+        type: "success",
+      });
+      emit("paymentSuccess");
+    } catch (error) {
+      errorMessage.value = error.response.data.message;
+      // showNotification({
+      //   title: "Thông báo",
+      //   message: error.response.data.message,
+      //   type: "success",
+      // });
+      console.error("Error creating booking:", error);
+    }
+  }
+};
+// end thanh toan
+
+watch(
+  () => props.bill.total_amount,
+  (newTotal) => {
+    billTotalAmount.value = newTotal;
+  }
+);
 
 onMounted(() => {
   addedItems.value = props.bill.supplies;
   console.log(props.bill.supplies);
+  console.log(props.bill);
 });
 </script>
 
