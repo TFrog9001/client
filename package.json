@@ -14,6 +14,7 @@
     "@fullcalendar/interaction": "^6.1.15",
     "@fullcalendar/timegrid": "^6.1.15",
     "@fullcalendar/vue3": "^6.1.15",
+    "@paypal/paypal-js": "^8.1.2",
     "@popperjs/core": "^2.11.8",
     "axios": "^1.6.3",
     "bootstrap": "^5.3.2",

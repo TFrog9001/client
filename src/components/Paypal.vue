@@ -1,35 +1,48 @@
 <template>
   <div>
     <!-- PayPal Button Container -->
-    <div id="paypal-button-container"></div>
-    <!-- Button to Refund -->
-    <button v-if="isPaymentSuccessful && captureId" @click="handleRefund">
-      Refund
-    </button>
+    <div v-if="!showRefundButton" id="paypal-button-container"></div>
+
+    <!-- Refund Button -->
+    <button v-if="showRefundButton" @click="handleRefund">Refund</button>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { loadScript } from "@paypal/paypal-js";
 
+// Prop từ component cha
+const props = defineProps({
+  showRefundButton: {
+    type: Boolean,
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
+});
+
+const emit = defineEmits(["paymentSuccess", "paymentError"]);
+
 const clientId =
-  "AR-__Sbyg9YxPWMoLn7Aj2HJJY0ymqMe6JpsDq_xd2tk_V5-KKAr4JYIQ_ldqRfuJ3GwC7x0-eJ9V62d"; // Replace with your PayPal client ID
+  "AR-__Sbyg9YxPWMoLn7Aj2HJJY0ymqMe6JpsDq_xd2tk_V5-KKAr4JYIQ_ldqRfuJ3GwC7x0-eJ9V62d"; // Thay bằng client ID thật
 const secret =
-  "EIc--r_538vcm1rB8_hPqbEkwo_xxr9s4oTPHZp8JW4ezXxy7V3Og20Yu4S-FVUBAp8inuRI2KRu4zoW"; // Replace with your PayPal secret
-const isPaymentSuccessful = ref(false); // Track payment status
+  "EIc--r_538vcm1rB8_hPqbEkwo_xxr9s4oTPHZp8JW4ezXxy7V3Og20Yu4S-FVUBAp8inuRI2KRu4zoW"; // Thay bằng secret thật
 const captureId = ref(null); // Store captureId for refund process
 const accessToken = ref(null); // Store access token for API calls
+const amount = ref(0);
 
-// Load PayPal SDK script
+
+
 onMounted(async () => {
   const paypal = await loadScript({
     "client-id": clientId,
-    currency: "USD", // You can change the currency
-    intent: "capture", // 'authorize' or 'capture'
+    currency: "USD",
+    intent: "capture",
   });
 
-  // Initialize PayPal button
   paypal
     .Buttons({
       createOrder(data, actions) {
@@ -37,7 +50,7 @@ onMounted(async () => {
           purchase_units: [
             {
               amount: {
-                value: "11.50", // Amount to be paid
+                value: amount.value,
               },
             },
           ],
@@ -46,18 +59,18 @@ onMounted(async () => {
       onApprove(data, actions) {
         return actions.order.capture().then((details) => {
           alert("Payment successful: " + details.payer.name.given_name);
-          isPaymentSuccessful.value = true; // Set payment status to true
-
-          // Get captureId from the transaction details
           captureId.value = details.purchase_units[0].payments.captures[0].id;
-          console.log("Capture ID:", captureId.value); // Print captureId to console for testing
+          emit("paymentSuccess", {
+            transactionId: captureId.value,
+            details,
+          });
         });
       },
       onError(err) {
         console.error("Error during payment:", err);
       },
     })
-    .render("#paypal-button-container"); // Render the PayPal button
+    .render("#paypal-button-container");
 });
 
 async function getAccessToken() {
@@ -113,7 +126,6 @@ async function handleRefund() {
     if (response.ok) {
       const refundAmount =
         transactionDetails.seller_receivable_breakdown.net_amount.value;
-      console.log("Refund Amount:", refundAmount);
 
       const refundResponse = await fetch(
         `https://api-m.sandbox.paypal.com/v2/payments/captures/${captureId.value}/refund`,
@@ -135,7 +147,6 @@ async function handleRefund() {
       const result = await refundResponse.json();
       if (refundResponse.ok) {
         alert("Refund successful!");
-        isPaymentSuccessful.value = false;
       } else {
         alert(`Refund failed: ${result.message || "Unknown error"}`);
       }
@@ -151,6 +162,23 @@ async function handleRefund() {
     alert("Refund request failed");
   }
 }
+
+onMounted(() => {
+  console.log(props.amount);
+  const sanitizedAmount = parseFloat(props.amount.replace(/\./g, "")) / 24000;
+  amount.value = sanitizedAmount.toFixed(2);
+});
+
+watch(
+  () => props.amount,
+  (newCost, oldCost) => {
+    // console.log(`Cost changed from ${oldCost} to ${newCost}`);
+    const sanitizedAmount = parseFloat(props.amount.replace(/\./g, "")) / 24000;
+    // console.log(sanitizedAmount.toFixed(2));
+
+    amount.value = sanitizedAmount.toFixed(2);
+  }
+);
 </script>
 
 <style scoped>

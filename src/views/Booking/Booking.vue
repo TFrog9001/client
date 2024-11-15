@@ -273,6 +273,7 @@
                     prepend-icon="mdi-calendar"
                     clearable
                     variant="outlined"
+                    :rules="[(v) => !!v || 'Ngày đặt là bắt buộc']"
                   ></v-date-input>
                 </v-col>
 
@@ -430,6 +431,16 @@
                         Thanh toán với ZaloPay
                       </template>
                     </v-radio>
+                    <v-radio value="paypal">
+                      <template v-slot:label>
+                        <img
+                          src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
+                          alt="PayPal Logo"
+                          style="height: 30px; margin-right: 8px"
+                        />
+                        Thanh toán với PayPal
+                      </template>
+                    </v-radio>
                   </v-radio-group>
                 </v-col>
               </v-row>
@@ -437,7 +448,12 @@
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn variant="outlined" color="primary" @click="handleBooking">
+            <v-btn
+              v-if="bookingDetails.paymentType !== 'paypal'"
+              variant="outlined"
+              color="primary"
+              @click="handleBooking"
+            >
               <span
                 v-if="
                   bookingDetails.paymentMethod === 'full' &&
@@ -455,7 +471,22 @@
               <span v-else-if="bookingDetails.paymentMethod === 'none'"
                 >Đặt sân</span
               >
+              <v-btn
+                v-else
+                variant="outlined"
+                color="primary"
+                @click="handleBooking"
+              >
+                Đặt sân
+              </v-btn>
             </v-btn>
+            <Paypal
+              v-if="bookingDetails.paymentType == 'paypal'"
+              :amount="paypalAmount"
+              :showRefundButton="shouldShowRefundButton"
+              @paymentSuccess="handleBooking"
+              @paymentError="handlePaymentError"
+            />
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -482,6 +513,7 @@ import { showNotification } from "../../utils/notification";
 import { useAuthStore } from "../../stores/auth";
 import BookingServices from "./BookingServices.vue";
 import serviceService from "../../services/serviceService";
+import Paypal from "../../components/Paypal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -499,6 +531,8 @@ const selectedDateForm = ref(new Date());
 const selectedField = ref(null);
 
 const errorMessage = ref("");
+const shouldShowRefundButton = ref(false);
+const paypalAmount = ref("");
 
 // Booking details
 const bookingDetails = ref({
@@ -518,6 +552,7 @@ const bookingDetails = ref({
   deposit: null,
   paymentMethod: "full",
   paymentType: "zalopay",
+  paypal_id: "",
 });
 
 // Time slots
@@ -624,6 +659,12 @@ const calculateEndTime = () => {
 
   bookingDetails.value.cost = formatCurrency(totalPrice);
   bookingDetails.value.deposit = formatCurrency(totalPrice * 0.4);
+
+  if (bookingDetails.value.paymentMethod === "full") {
+    paypalAmount.value = bookingDetails.value.cost;
+  } else {
+    paypalAmount.value = bookingDetails.value.deposit;
+  }
 };
 
 // Parse time from string
@@ -769,6 +810,7 @@ const handleOpenBooking = (fieldId, index, date) => {
     booking_date: date || getLocalDate(selectedDate.value),
     paymentMethod: "full",
     paymentType: "zalopay",
+    paypal_id: "",
   };
   calculateEndTime();
   isDialogOpen.value = true;
@@ -782,7 +824,9 @@ const getLocalDate = (date) => {
 };
 
 // Handle booking submission
-const handleBooking = async () => {
+const handleBooking = async (payload) => {
+   const paypalId = payload.transactionId
+  console.log(paypalId);
   if (selectedSlot.value) {
     const bookingData = {
       field_id: bookingDetails.value.field,
@@ -800,6 +844,7 @@ const handleBooking = async () => {
         service_id: service.service_id,
         staff_id: service.staff_id,
       })),
+      paypal_id: paypalId
     };
 
     if (bookingDetails.value.paymentType === "zalopay") {
@@ -833,8 +878,8 @@ const handleBooking = async () => {
         errorMessage.value = error.response.data.message;
         console.error("Error creating ZaloPay payment:", error);
       }
-    } else {
-      try {
+    } else if (bookingDetails.value.paymentType === "paypal")
+      try {    
         await bookingService.createBooking(bookingData);
         fetchBookings();
         isDialogOpen.value = false;
@@ -845,9 +890,9 @@ const handleBooking = async () => {
         });
       } catch (error) {
         errorMessage.value = error.response.data.message;
-        console.error("Error creating booking:", error);
+        console.error("Error creating Paypal payment:", error);
       }
-    }
+
   }
 };
 
@@ -992,6 +1037,17 @@ watch([selectedDate, selectedField], () => {
   fetchBookings();
 });
 
+watch(
+  () => bookingDetails.value.paymentMethod, // Theo dõi thuộc tính cost
+  (newCost, oldCost) => {
+    if (newCost === "full") {
+      paypalAmount.value = bookingDetails.value.cost;
+    } else {
+      paypalAmount.value = bookingDetails.value.deposit;
+    }
+  }
+);
+
 // Lifecycle hook
 onMounted(() => {
   fetchFields();
@@ -1037,19 +1093,19 @@ onMounted(() => {
 
 /* Color booking status */
 .status-paid {
-  background-color: lightgreen; /*"Đã thanh toán" */
+  background-color: lightgreen; 
 }
 
 .status-booked {
-  background-color: lightblue; /*"Đã đặt" */
+  background-color: lightblue; 
 }
 
 .status-deposit {
-  background-color: lightyellow; /*"Đã cọc" */
+  background-color: lightyellow; 
 }
 
 .status-cancelled {
-  background-color: lightcoral; /* Color for "Hủy" */
+  background-color: lightcoral; 
 }
 #table-booking,
 #table-booking-week {
@@ -1096,5 +1152,9 @@ onMounted(() => {
   background-position: center;
   background-repeat: no-repeat;
   position: relative;
+}
+
+.v-label {
+  opacity: 1 !important;
 }
 </style>
