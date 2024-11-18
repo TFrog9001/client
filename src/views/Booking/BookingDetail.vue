@@ -49,7 +49,7 @@
             <p>
               <strong>Tiền đã cọc:</strong>
               <span class="status-cancelled currency-amount">{{
-                '- '+formatCurrency(booking.deposit)
+                "- " + formatCurrency(booking.deposit)
               }}</span>
             </p>
             <p>
@@ -68,8 +68,21 @@
 
             <p>
               <strong>Trạng thái:</strong>
-              <span :class="getStatusClass(booking.bill.status)">
+              <span
+                v-if="booking.status !== 'Hủy'"
+                :class="getStatusClass(booking.bill.status)"
+              >
                 {{ booking.bill.status }}
+              </span>
+              <span v-else :class="getStatusClass(booking.status)">
+                {{ booking.status }}
+              </span>
+            </p>
+            <p v-if="canCancel && booking.status !== 'Hủy'" class="mt-4">
+              <span>
+                <v-btn style="width: 270px" color="red" @click="handleCancel">
+                  Hủy đặt sân
+                </v-btn>
               </span>
             </p>
           </div>
@@ -175,7 +188,7 @@
         </div>
       </v-col>
     </v-row>
-    <v-row>
+    <v-row v-if="canCancel == false">
       <v-col>
         <SupplyTable
           v-if="booking"
@@ -201,6 +214,7 @@ import SupplyTable from "./SupplyTable.vue";
 const route = useRoute();
 const bookingId = route.params.id;
 
+const canCancel = ref(true);
 const booking = ref(null);
 const bill = ref(null);
 const services = ref(null);
@@ -247,6 +261,58 @@ const fetchBooking = async () => {
   } catch (error) {
     console.error("Error fetching booking:", error);
   }
+};
+
+// Hủy booking
+async function handleCancel() {
+  try {
+    const now = new Date();
+    const startTime = new Date(
+      `${booking.value.booking_date}T${booking.value.start_time}`
+    );
+
+    const timeDifference = (startTime - now) / (1000 * 60); // Tính thời gian chênh lệch theo phút
+
+    if (timeDifference > 60) {
+      // Trường hợp hủy trước 1 tiếng
+      const confirmCancel = confirm(
+        "Bạn có chắc chắn muốn hủy đặt sân không? Thao tác này không mất tiền cọc."
+      );
+      if (confirmCancel) {
+        await bookingService.cancelBooking(bookingId);
+        alert("Đặt sân đã được hủy thành công.");
+        fetchBooking();
+      }
+    } else {
+      const confirmCancelWithDeposit = confirm(
+        "Hủy đặt sân sau thời gian quy định sẽ mất tiền cọc. Bạn có chắc chắn muốn hủy không?"
+      );
+      if (confirmCancelWithDeposit) {
+        await bookingService.cancelBooking(bookingId);
+        alert("Đặt sân đã được hủy. Tiền cọc sẽ không được hoàn lại.");
+        fetchBooking();
+      }
+    }
+  } catch (error) {
+    console.error("Lỗi khi hủy đặt sân:", error);
+    alert("Có lỗi xảy ra khi hủy đặt sân. Vui lòng thử lại sau.");
+  }
+}
+
+// Hàm kiểm tra thời gian để hiển thị nút hủy
+const checkCanCancel = () => {
+  if (!booking.value) return false;
+  const now = new Date();
+  const startTime = new Date(
+    `${booking.value.booking_date}T${booking.value.start_time}`
+  );
+  return now < startTime;
+};
+
+const startRealTimeCheck = () => {
+  setInterval(() => {
+    canCancel.value = checkCanCancel();
+  }, 1000);
 };
 
 // Tính tổng phí dịch vụ
@@ -404,6 +470,7 @@ onMounted(() => {
   fetchData();
   listenForMessages();
   setInterval(calculateProgress, 60000);
+  startRealTimeCheck();
 });
 </script>
 

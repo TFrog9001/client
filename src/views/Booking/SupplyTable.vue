@@ -43,6 +43,7 @@
               v-model.number="item.quantity"
               @change="handleQuantityChange(item)"
               min="0"
+              disabled
             />
           </td>
           <td>{{ formatCurrency(item.price) }} VND</td>
@@ -54,7 +55,7 @@
 
     <div class="my-2" v-if="props.bill.status == 'Chưa thanh toán'">
       <div></div>
-      <h4>Thanh toán: {{ formatCurrency(billTotalAmount) }} VND</h4>
+      <h4>Thanh toán: {{ formatCurrency(totalAmountDue) }} VND</h4>
       <v-radio-group v-model="paymentMethod">
         <v-radio label="ZaloPay" value="zalopay">
           <template v-slot:label>
@@ -70,8 +71,29 @@
             Thanh toán với ZaloPay
           </template>
         </v-radio>
+        <v-radio label="Paypal" value="paypal">
+          <template v-slot:label>
+            <img
+              src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
+              alt="PayPal Logo"
+              style="height: 30px; margin-right: 8px"
+            />
+            Thanh toán với PayPal
+          </template>
+        </v-radio>
       </v-radio-group>
-      <v-btn color="primary" @click="processPayment">Xác nhận thanh toán</v-btn>
+      <v-btn
+        v-if="paymentMethod == 'zalopay'"
+        color="primary"
+        @click="processPayment"
+        >Thanh toán với Zalopay</v-btn
+      >
+      <Paypal
+        class="btn"
+        v-if="paymentMethod == 'paypal'"
+        :amount="totalAmountDue"
+        :showRefundButton="showRefundButton"
+      />
     </div>
     <!-- Popup để hiển thị danh sách đồ uống -->
     <v-dialog v-model="showMenu" persistent max-width="600px">
@@ -231,6 +253,7 @@ import billService from "../../services/billService";
 import paymentSerice from "../../services/paymentService";
 
 import { showNotification } from "../../utils/notification";
+import Paypal from "../../components/Paypal.vue";
 
 const props = defineProps({
   bookingId: {
@@ -241,11 +264,16 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  totalAmountDue: {
+    type: Number,
+    required: true,
+  },
 });
 
 const emit = defineEmits(["paymentSuccess"]);
 
 const showMenu = ref(false);
+const showRefundButton = ref(false);
 const search = ref("");
 const loadingSearch = ref(false);
 const items = ref([]);
@@ -530,6 +558,7 @@ onMounted(() => {
   addedItems.value = props.bill.supplies;
   console.log(props.bill.supplies);
   console.log(props.bill);
+  console.log(props.totalAmountDue);
 });
 </script>
 

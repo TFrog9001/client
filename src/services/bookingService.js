@@ -39,6 +39,27 @@ const bookingService = {
             throw error;
         }
     },
+
+    async createBooking(booking) {
+        try {
+            const response = await api.post('/bookings', booking);
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi tạo booking', error);
+            throw error;
+        }
+    },
+    async cancelBooking(id) {
+        try {
+            const response = await api.post(`/bookings/${id}/cancel`);
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra hủy booking:', error);
+            throw error;
+        }
+    },
+
+    
 }
 
 export default bookingService;

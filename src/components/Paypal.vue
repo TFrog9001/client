@@ -11,6 +11,7 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import { loadScript } from "@paypal/paypal-js";
+import { showNotification } from "../utils/notification";
 
 // Prop từ component cha
 const props = defineProps({
@@ -34,8 +35,6 @@ const captureId = ref(null); // Store captureId for refund process
 const accessToken = ref(null); // Store access token for API calls
 const amount = ref(0);
 
-
-
 onMounted(async () => {
   const paypal = await loadScript({
     "client-id": clientId,
@@ -58,7 +57,12 @@ onMounted(async () => {
       },
       onApprove(data, actions) {
         return actions.order.capture().then((details) => {
-          alert("Payment successful: " + details.payer.name.given_name);
+          // alert("Payment successful: " + details.payer.name.given_name);
+          showNotification({
+            title: "Thông báo",
+            message: "Thanh toán với paypal thành công",
+            type: "success",
+          });
           captureId.value = details.purchase_units[0].payments.captures[0].id;
           emit("paymentSuccess", {
             transactionId: captureId.value,
@@ -146,7 +150,11 @@ async function handleRefund() {
 
       const result = await refundResponse.json();
       if (refundResponse.ok) {
-        alert("Refund successful!");
+        showNotification({
+          title: "Thông báo",
+          message: "Đã hủy thành công và tiền đã được hoàn vào ví của bạn",
+          type: "success",
+        });
       } else {
         alert(`Refund failed: ${result.message || "Unknown error"}`);
       }
@@ -165,7 +173,9 @@ async function handleRefund() {
 
 onMounted(() => {
   console.log(props.amount);
-  const sanitizedAmount = parseFloat(props.amount.replace(/\./g, "")) / 24000;
+  const amountString =
+    typeof props.amount === "string" ? props.amount : props.amount.toString();
+  const sanitizedAmount = parseFloat(amountString.replace(/\./g, "")) / 24000;
   amount.value = sanitizedAmount.toFixed(2);
 });
 
@@ -173,9 +183,9 @@ watch(
   () => props.amount,
   (newCost, oldCost) => {
     // console.log(`Cost changed from ${oldCost} to ${newCost}`);
-    const sanitizedAmount = parseFloat(props.amount.replace(/\./g, "")) / 24000;
-    // console.log(sanitizedAmount.toFixed(2));
-
+    const amountString =
+      typeof props.amount === "string" ? props.amount : props.amount.toString();
+    const sanitizedAmount = parseFloat(amountString.replace(/\./g, "")) / 24000;
     amount.value = sanitizedAmount.toFixed(2);
   }
 );

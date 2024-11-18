@@ -485,7 +485,6 @@
               :amount="paypalAmount"
               :showRefundButton="shouldShowRefundButton"
               @paymentSuccess="handleBooking"
-              @paymentError="handlePaymentError"
             />
           </v-card-actions>
         </v-card>
