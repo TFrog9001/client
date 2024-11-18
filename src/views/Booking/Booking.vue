@@ -36,7 +36,7 @@
               {{ selectedField ? "Tuần này" : "Hôm nay" }}
             </v-btn>
             <v-btn @click="selectedField ? nextWeek() : nextDay()">
-              {{ selectedField ? "Tuần sau" : "Ngày sau" }}
+              {{ selectedField ? "Tuần sau" : "Ngày mai" }}
             </v-btn>
           </v-col>
         </v-row>
@@ -724,7 +724,7 @@ const fetchBookings = async () => {
   resetBookings();
   if (selectedField.value) {
     for (const day of weekDays.value) {
-      const { data } = await bookingService.getBookings(day.date);
+      const { data } = await bookingService.getBookings(day.date, '');
       data.forEach((booking) => {
         if (booking.field_id === selectedField.value) {
           const startIndex = timeSlots.findIndex(
@@ -923,7 +923,7 @@ const getBookingHeight = (fieldId, index, date) => {
 
 // Computed field options
 const fieldOptions = computed(() => {
-  return [{ id: null, name: "All Fields" }, ...fields.value];
+  return [{ id: null, name: "Tất cả các sân" }, ...fields.value];
 });
 
 // Filtered fields

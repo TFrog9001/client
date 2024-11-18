@@ -1,10 +1,10 @@
 import api from "../axios/api";
 
 const bookingService = {
-    async getBookings(booking_date) {
+    async getBookings(booking_date, status) {
         try {
             const response = await api.get('/bookings', {
-                params: { booking_date }
+                params: { booking_date, status: status ?? 'nofail' }
             });
             return response;
         } catch (error) {
@@ -59,7 +59,7 @@ const bookingService = {
         }
     },
 
-    
+
 }
 
 export default bookingService;
