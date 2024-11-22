@@ -18,33 +18,26 @@
               class="img-thumbnail"
               width="100"
             />
+            <div class="mt-3">
+              <input type="file" @change="onAvatarChange" />
+            </div>
           </div>
           <div>
             <label class="form-label">Tên</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="user.name"
-              disabled
-            />
+            <input type="text" class="form-control" v-model="user.name" />
           </div>
           <div class="mt-3">
             <label class="form-label">Email</label>
-            <input
-              type="email"
-              class="form-control"
-              v-model="user.email"
-              disabled
-            />
+            <input type="email" class="form-control" v-model="user.email" />
           </div>
           <div class="mt-3">
             <label class="form-label">Số điện thoại</label>
-            <input
-              type="tel"
-              class="form-control"
-              v-model="user.phone"
-              disabled
-            />
+            <input type="tel" class="form-control" v-model="user.phone" />
+          </div>
+          <div class="mt-4 text-right">
+            <button class="btn btn-primary" @click="updateUserInfo">
+              Lưu thông tin
+            </button>
           </div>
         </div>
       </div>
@@ -211,6 +204,8 @@ import { onMounted, ref, computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import bookingService from "@/services/bookingService";
 import { useRouter } from "vue-router"; // Dùng để chuyển trang
+// import api from "../axios/api";
+import userService from "../../services/userService";
 
 const authStore = useAuthStore();
 const user = ref({});
@@ -219,6 +214,39 @@ const startDate = ref("");
 const endDate = ref("");
 const selectedStatus = ref("All"); // Trạng thái được chọn
 const router = useRouter(); // Khởi tạo router để chuyển trang
+
+// update user
+
+// // Handle avatar change
+const onAvatarChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    const imageUrl = URL.createObjectURL(file);
+    user.value.avatar = imageUrl;
+    user.value.avatarFile = file;
+  }
+};
+
+// Update all user information including avatar
+const updateUserInfo = async () => {
+  const formData = new FormData();
+  formData.append("name", user.value.name);
+  formData.append("email", user.value.email);
+  formData.append("phone", user.value.phone);
+
+  // Append avatar file nếu có
+  if (user.value.avatarFile) {
+    formData.append("avatar", user.value.avatarFile);
+  }
+
+  try {
+    await userService.editUser(formData, user.value.id);
+    alert("Thông tin đã được cập nhật thành công!");
+  } catch (error) {
+    console.error("Lỗi khi cập nhật thông tin:", error);
+    alert("Không thể cập nhật thông tin. Vui lòng thử lại.");
+  }
+};
 
 // Pagination variables
 const currentPage = ref(1);
@@ -232,6 +260,11 @@ const viewBookingDetails = (bookingId) => {
 onMounted(async () => {
   await authStore.fetchUser();
   user.value = authStore.user;
+
+  // Kiểm tra và chỉnh sửa đường dẫn avatar nếu cần
+  if (user.value.avatar && user.value.avatar.startsWith("avatars")) {
+    user.value.avatar = `http://127.0.0.1:8000/storage/${user.value.avatar}`;
+  }
 
   // Fetch bookings by user ID
   try {

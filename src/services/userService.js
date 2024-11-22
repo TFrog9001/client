@@ -46,10 +46,14 @@ const userService = {
     // Chỉnh sửa thông tin người dùng theo ID
     async editUser(user, id) {
         try {
-            const response = await api.post(`/users/${id}`, user);
-            return response;
+            const response = await api.post(`/users/${id}`, user, {
+                headers: {
+                    "Content-Type": "multipart/form-data", // Xử lý nếu có tệp
+                },
+            });
+            return response.data;
         } catch (error) {
-            console.error('Có lỗi xảy ra khi chỉnh sửa người dùng:', error);
+            console.error(`Lỗi khi chỉnh sửa người dùng với ID ${id}:`, error.message);
             throw error;
         }
     },
