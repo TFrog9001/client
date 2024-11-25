@@ -383,10 +383,7 @@
                 <v-row class="my-3" v-for="service in selectedServices">
                   <v-col cols="1" class="mr-3">
                     <v-avatar
-                      :image="
-                        service.staffAvatar ||
-                        'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
-                      "
+                      :image="getStaffAvatar(service.staffAvatar)"
                     ></v-avatar>
                   </v-col>
                   <v-col>
@@ -724,7 +721,7 @@ const fetchBookings = async () => {
   resetBookings();
   if (selectedField.value) {
     for (const day of weekDays.value) {
-      const { data } = await bookingService.getBookings(day.date, '');
+      const { data } = await bookingService.getBookings(day.date, "");
       data.forEach((booking) => {
         if (booking.field_id === selectedField.value) {
           const startIndex = timeSlots.findIndex(
@@ -824,7 +821,7 @@ const getLocalDate = (date) => {
 
 // Handle booking submission
 const handleBooking = async (payload) => {
-   const paypalId = payload.transactionId
+  const paypalId = payload.transactionId;
   console.log(paypalId);
   if (selectedSlot.value) {
     const bookingData = {
@@ -843,7 +840,7 @@ const handleBooking = async (payload) => {
         service_id: service.service_id,
         staff_id: service.staff_id,
       })),
-      paypal_id: paypalId
+      paypal_id: paypalId,
     };
 
     if (bookingDetails.value.paymentType === "zalopay") {
@@ -878,7 +875,7 @@ const handleBooking = async (payload) => {
         console.error("Error creating ZaloPay payment:", error);
       }
     } else if (bookingDetails.value.paymentType === "paypal")
-      try {    
+      try {
         await bookingService.createBooking(bookingData);
         fetchBookings();
         isDialogOpen.value = false;
@@ -891,7 +888,6 @@ const handleBooking = async (payload) => {
         errorMessage.value = error.response.data.message;
         console.error("Error creating Paypal payment:", error);
       }
-
   }
 };
 
@@ -1031,6 +1027,16 @@ const viewBookingDetail = (booking) => {
   }
 };
 
+//check image
+const getStaffAvatar = (avatar) => {
+  if (avatar && avatar.startsWith("avatars")) {
+    return `http://127.0.0.1:8000/storage/${avatar}`;
+  }
+  return (
+    avatar ||
+    "https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png"
+  );
+};
 // Watchers
 watch([selectedDate, selectedField], () => {
   fetchBookings();
@@ -1092,19 +1098,19 @@ onMounted(() => {
 
 /* Color booking status */
 .status-paid {
-  background-color: lightgreen; 
+  background-color: lightgreen;
 }
 
 .status-booked {
-  background-color: lightblue; 
+  background-color: lightblue;
 }
 
 .status-deposit {
-  background-color: lightyellow; 
+  background-color: lightyellow;
 }
 
 .status-cancelled {
-  background-color: lightcoral; 
+  background-color: lightcoral;
 }
 #table-booking,
 #table-booking-week {

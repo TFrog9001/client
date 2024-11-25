@@ -74,8 +74,8 @@
               class="btn mx-1 mb-2"
               :class="
                 selectedStatus === 'Đã cọc'
-                  ? 'btn-primary'
-                  : 'btn-outline-primary'
+                  ? 'btn-warning'
+                  : 'btn-outline-warning'
               "
               @click="filterByStatus('Đã cọc')"
             >

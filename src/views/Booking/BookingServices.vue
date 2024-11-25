@@ -49,10 +49,7 @@
                 outlined
               >
                 <v-img
-                  :src="
-                    staff.avatar ||
-                    'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
-                  "
+                  :src="getStaffAvatar(staff.avatar)"
                   height="100"
                   contain
                   class="mt-2"
@@ -138,7 +135,7 @@ const submitSelectedServices = () => {
       staffName: staff.name,
       staffAvatar: staff.avatar,
       staff_id: staff.id,
-      service_id: service.id
+      service_id: service.id,
     };
   });
   emit("select", result);
@@ -157,6 +154,16 @@ const closeDialog = () => {
   errorMessage.value = "";
   emit("update:isDialogOpen", false);
   emit("close");
+};
+
+const getStaffAvatar = (avatar) => {
+  if (avatar && avatar.startsWith("avatars")) {
+    return `http://127.0.0.1:8000/storage/${avatar}`;
+  }
+  return (
+    avatar ||
+    "https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png"
+  );
 };
 </script>
 

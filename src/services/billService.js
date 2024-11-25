@@ -36,6 +36,16 @@ const billService = {
             throw error;
         }
     },
+
+    async paymentBill(bill_id) {
+        try {
+            const response = await api.post(`/bills/${bill_id}/payment`);
+            return response;
+        } catch (error) {
+            console.error('Có lỗi xảy ra khi xóa sản phẩm', error);
+            throw error;
+        }
+    },
 }
 
 export default billService;

@@ -20,81 +20,116 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in addedItems" :key="item.id">
-          <td>
-            <div
-              class="d-flex justify-content-between align-items-center"
-              style="height: 100%"
-            >
-              <span class="text-start">{{ item.supply.name }}</span>
-              <img
-                v-if="item.supply.image"
-                :src="`http://127.0.0.1:8000/storage/${item.supply.image}`"
-                alt="Product Image"
-                width="50"
-                height="50"
-                class="ms-2"
+        <template v-if="addedItems && addedItems.length > 0">
+          <tr v-for="item in addedItems" :key="item.id">
+            <td>
+              <div
+                class="d-flex justify-content-between align-items-center"
+                style="height: 100%"
+              >
+                <span class="text-start">{{ item.supply.name }}</span>
+                <img
+                  v-if="item.supply.image"
+                  :src="`http://127.0.0.1:8000/storage/${item.supply.image}`"
+                  alt="Product Image"
+                  width="50"
+                  height="50"
+                  class="ms-2"
+                />
+              </div>
+            </td>
+            <td>
+              <input
+                type="number"
+                v-model.number="item.quantity"
+                @change="handleQuantityChange(item)"
+                min="0"
+                :disabled="true"
               />
-            </div>
-          </td>
-          <td>
-            <input
-              type="number"
-              v-model.number="item.quantity"
-              @change="handleQuantityChange(item)"
-              min="0"
-              disabled
-            />
-          </td>
-          <td>{{ formatCurrency(item.price) }} VND</td>
-          <td>{{ formatCurrency(item.quantity * item.price) }} VND</td>
-        </tr>
+            </td>
+            <td>{{ formatCurrency(item.price) }} VND</td>
+            <td>{{ formatCurrency(item.quantity * item.price) }} VND</td>
+          </tr>
+        </template>
+        <template v-else>
+          <tr>
+            <td colspan="4" class="text-center">
+              Không có sản phẩm nào được thêm.
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
+
     <v-divider></v-divider>
 
     <div class="my-2" v-if="props.bill.status == 'Chưa thanh toán'">
       <div></div>
       <h4>Thanh toán: {{ formatCurrency(totalAmountDue) }} VND</h4>
-      <v-radio-group v-model="paymentMethod">
-        <v-radio label="ZaloPay" value="zalopay">
-          <template v-slot:label>
-            <img
-              src="@/assets/images/1715337285_zNBo0.png"
-              alt="ZaloPay Logo"
-              style="
-                height: 50px;
-                margin-right: 8px;
-                filter: contrast(210%) brightness(90%);
-              "
-            />
-            Thanh toán với ZaloPay
-          </template>
-        </v-radio>
-        <v-radio label="Paypal" value="paypal">
-          <template v-slot:label>
-            <img
-              src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
-              alt="PayPal Logo"
-              style="height: 30px; margin-right: 8px"
-            />
-            Thanh toán với PayPal
-          </template>
-        </v-radio>
-      </v-radio-group>
-      <v-btn
-        v-if="paymentMethod == 'zalopay'"
-        color="primary"
-        @click="processPayment"
-        >Thanh toán với Zalopay</v-btn
-      >
-      <Paypal
-        class="btn"
-        v-if="paymentMethod == 'paypal'"
-        :amount="totalAmountDue"
-        :showRefundButton="showRefundButton"
-      />
+
+      <!-- Điều kiện hiển thị nút hoặc thông báo -->
+      <div v-if="totalAmountDue === 0">
+        <v-btn
+          color="primary"
+          @click="
+            () => {
+              paymentMethod = 'none';
+              processPayment();
+            }
+          "
+        >
+          Thanh toán 0đ
+        </v-btn>
+      </div>
+      <div v-else-if="totalAmountDue <= 10000">
+        <p class="text-warning">
+          Phiền bạn thanh toán tại quầy vì tổng thanh toán nhỏ hơn 10.000đ.
+        </p>
+      </div>
+      <div v-else>
+        <v-radio-group v-model="paymentMethod">
+          <v-radio label="ZaloPay" value="zalopay">
+            <template v-slot:label>
+              <img
+                src="@/assets/images/1715337285_zNBo0.png"
+                alt="ZaloPay Logo"
+                style="
+                  height: 50px;
+                  margin-right: 8px;
+                  filter: contrast(210%) brightness(90%);
+                "
+              />
+              Thanh toán với ZaloPay
+            </template>
+          </v-radio>
+          <v-radio label="Paypal" value="paypal">
+            <template v-slot:label>
+              <img
+                src="https://www.paypalobjects.com/webstatic/icon/pp258.png"
+                alt="PayPal Logo"
+                style="height: 30px; margin-right: 8px"
+              />
+              Thanh toán với PayPal
+            </template>
+          </v-radio>
+        </v-radio-group>
+        <v-btn
+          v-if="paymentMethod === 'zalopay'"
+          color="primary"
+          @click="processPayment"
+        >
+          Thanh toán với Zalopay
+        </v-btn>
+        <Paypal
+          class="btn"
+          v-if="paymentMethod === 'paypal'"
+          :amount="totalAmountDue"
+          :showRefundButton="showRefundButton"
+          @paymentSuccess="processPayment"
+        />
+      </div>
     </div>
+
     <!-- Popup để hiển thị danh sách đồ uống -->
     <v-dialog v-model="showMenu" persistent max-width="600px">
       <v-card>
@@ -487,13 +522,6 @@ watch(showMenu, (newValue) => {
 // thanh toan
 const processPayment = async () => {
   console.log(paymentMethod.value);
-  // const response = await billService.createBill(props.bill.id);
-  // console.log(response.data);
-
-  // if (paymentMethod.value == "zalopay") {
-
-  // }
-
   if (paymentMethod.value === "zalopay") {
     try {
       const zaloPayResult = await paymentSerice.createZalopayBill(
@@ -526,7 +554,7 @@ const processPayment = async () => {
     try {
       const respone = await billService.paymentBill(props.bill.id);
 
-      console.log(respone);
+      // console.log(respone);
 
       showNotification({
         title: "Thông báo",

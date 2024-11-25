@@ -174,10 +174,7 @@
                 <td>{{ service.service.description }}</td>
                 <td>
                   <v-avatar
-                    :image="
-                      service.staff.avatar ||
-                      'https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png'
-                    "
+                    :image="getStaffAvatar(service.staff.avatar)"
                   ></v-avatar>
                   {{ service.staff.name }}
                 </td>
@@ -271,7 +268,7 @@ async function handleCancel() {
       `${booking.value.booking_date}T${booking.value.start_time}`
     );
 
-    const timeDifference = (startTime - now) / (1000 * 60); // Tính thời gian chênh lệch theo phút
+    const timeDifference = (startTime - now) / (1000 * 60);
 
     if (timeDifference > 60) {
       // Trường hợp hủy trước 1 tiếng
@@ -317,12 +314,24 @@ const startRealTimeCheck = () => {
 
 // Tính tổng phí dịch vụ
 const serviceFees = computed(() => {
-  if (!booking.value || !booking.value.bill || !booking.value.bill.services)
+  if (!booking.value || !booking.value.bill || !booking.value.bill.services) {
     return 0;
-  return booking.value.bill.services.reduce(
-    (total, service) => total + parseFloat(service.fee),
-    0
+  }
+
+  // Tính thời lượng trận đấu (giờ)
+  const startTime = new Date(
+    `${booking.value.booking_date}T${booking.value.start_time}`
   );
+  const endTime = new Date(
+    `${booking.value.booking_date}T${booking.value.end_time}`
+  );
+  const durationInHours = (endTime - startTime) / (1000 * 60 * 60);
+
+  // Tính phí dịch vụ dựa trên thời lượng
+  return booking.value.bill.services.reduce((total, service) => {
+    const serviceFee = parseFloat(service.fee) * durationInHours;
+    return total + serviceFee;
+  }, 0);
 });
 
 // Tính tổng phí tiện ích
@@ -472,6 +481,16 @@ onMounted(() => {
   setInterval(calculateProgress, 60000);
   startRealTimeCheck();
 });
+
+const getStaffAvatar = (avatar) => {
+  if (avatar && avatar.startsWith("avatars")) {
+    return `http://127.0.0.1:8000/storage/${avatar}`;
+  }
+  return (
+    avatar ||
+    "https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png"
+  );
+};
 </script>
 
 <style scoped>
