@@ -11,6 +11,7 @@ import BookingDetail from '../views/Booking/BookingDetail.vue';
 import UserProfile from '../views/Users/UserProfile.vue';
 import Register from '../views/Register.vue';
 import Test from '../views/Test.vue';
+import Reviews from '../views/Reviews/Reviews.vue';
 
 const routes = [
     { path: '/', redirect: { name: 'Home' } },
@@ -22,6 +23,7 @@ const routes = [
     { path: '/booking', name: 'Booking', component: Booking, meta: { requiresAuth: true } },
     { path: '/booking/:id', name: 'BookingDetail', component: BookingDetail, meta: { requiresAuth: true } },
     { path: '/account', name: 'UserProfile', component: UserProfile, meta: { requiresAuth: true } },
+    { path: '/reviews', name: 'Reviews', component: Reviews },
     { path: '/user-booking', name: 'UserBooking', component: UserProfile, meta: { requiresAuth: true } },
     { path: '/test', name: 'Test', component: Test},
     { path: '/:catchAll(.*)', name: 'NotFound', component: NotFound },

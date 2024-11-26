@@ -78,7 +78,15 @@
                 {{ booking.status }}
               </span>
             </p>
-            <p v-if="canCancel && booking.status !== 'Hủy'" class="mt-4">
+            <p
+              v-if="
+                canCancel &&
+                booking.status !== 'Hủy' &&
+                booking.status !== 'Hoàn tiền' &&
+                booking.status !== 'Đã hoàn tiền'
+              "
+              class="mt-4"
+            >
               <span>
                 <v-btn style="width: 270px" color="red" @click="handleCancel">
                   Hủy đặt sân
@@ -197,6 +205,17 @@
         />
       </v-col>
     </v-row>
+    <v-divider></v-divider>
+    <div v-if="booking?.bill && booking?.bill?.status == 'Đã thanh toán'" class="comment-box">
+      <div class="m-2">
+        <h3>Bình luận</h3>
+      </div>
+      <div>
+        <div>
+          <Comment :bookingId="bookingId" />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -206,6 +225,7 @@ import { useRoute } from "vue-router";
 import chatService from "../../services/chatService";
 import bookingService from "../../services/bookingService";
 
+import Comment from "../../components/Comment.vue";
 import SupplyTable from "./SupplyTable.vue";
 
 const route = useRoute();
@@ -504,6 +524,17 @@ const getStaffAvatar = (avatar) => {
   border: 1px solid #ccc;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+}
+
+.comment-box {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
 }
 
 .booking-info {

@@ -107,7 +107,7 @@ const userName = ref("Tên Người Dùng");
 const menuItems = ref([
   { title: "Trang chủ", href: "/home" },
   { title: "Lịch sân", href: "/booking" },
-  { title: "Về chúng tôi", href: "/about" },
+  { title: "Đánh giá", href: "/reviews" },
   { title: "Liên hệ", href: "/contact" },
 ]);
 
