@@ -451,31 +451,15 @@
               color="primary"
               @click="handleBooking"
             >
-              <span
-                v-if="
-                  bookingDetails.paymentMethod === 'full' &&
-                  bookingDetails.paymentType !== 'direct'
-                "
+              <span v-if="bookingDetails.paymentMethod === 'full'"
                 >Thanh toán online</span
               >
-              <span
-                v-else-if="
-                  bookingDetails.paymentMethod === 'partial' &&
-                  bookingDetails.paymentType !== 'direct'
-                "
+              <span v-else-if="bookingDetails.paymentMethod === 'partial'"
                 >Thanh toán cọc online</span
               >
               <span v-else-if="bookingDetails.paymentMethod === 'none'"
                 >Đặt sân</span
               >
-              <v-btn
-                v-else
-                variant="outlined"
-                color="primary"
-                @click="handleBooking"
-              >
-                Đặt sân
-              </v-btn>
             </v-btn>
             <Paypal
               v-if="bookingDetails.paymentType == 'paypal'"
@@ -822,7 +806,6 @@ const getLocalDate = (date) => {
 // Handle booking submission
 const handleBooking = async (payload) => {
   const paypalId = payload.transactionId;
-  console.log(paypalId);
   if (selectedSlot.value) {
     const bookingData = {
       field_id: bookingDetails.value.field,
@@ -840,10 +823,13 @@ const handleBooking = async (payload) => {
         service_id: service.service_id,
         staff_id: service.staff_id,
       })),
-      paypal_id: paypalId,
+      paypal_id: paypalId ?? null,
     };
 
-    if (bookingDetails.value.paymentType === "zalopay") {
+    if (
+      bookingDetails.value.paymentType === "zalopay" &&
+      bookingDetails.value.paymentMethod !== "none"
+    ) {
       try {
         console.log(bookingData);
         const zaloPayResult = await paymentService.createZalopay(bookingData);
@@ -874,7 +860,10 @@ const handleBooking = async (payload) => {
         errorMessage.value = error.response.data.message;
         console.error("Error creating ZaloPay payment:", error);
       }
-    } else if (bookingDetails.value.paymentType === "paypal")
+    } else if (
+      bookingDetails.value.paymentType === "paypal" &&
+      bookingDetails.value.paymentMethod !== "none"
+    ) {
       try {
         await bookingService.createBooking(bookingData);
         fetchBookings();
@@ -888,6 +877,23 @@ const handleBooking = async (payload) => {
         errorMessage.value = error.response.data.message;
         console.error("Error creating Paypal payment:", error);
       }
+    } else if (bookingDetails.value.paymentMethod === "none") {
+      console.log(bookingData);
+      try {
+        await bookingService.createBooking(bookingData);
+        fetchBookings();
+        isDialogOpen.value = false;
+        showNotification({
+          title: "Thông báo",
+          message: "Đã tạo booking thành công",
+          type: "success",
+        });
+      } catch (error) {
+        errorMessage.value =
+          error.response?.data?.message || "Đã xảy ra lỗi khi tạo booking.";
+        console.error("Error creating booking:", error);
+      }
+    }
   }
 };
 

@@ -15,10 +15,21 @@ import Footer from "./components/Footer.vue";
         <Footer />
       </v-footer>
     </v-app>
+    <ChatbotWidget />
   </div>
 </template>
 
-<script></script>
+
+<script>
+import ChatbotWidget from './components/ChatbotWidget.vue';
+
+export default {
+  components: {
+    ChatbotWidget,
+  },
+};
+
+</script>
 
 <style scope>
 #main-content {

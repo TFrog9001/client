@@ -207,6 +207,8 @@ import { useRouter } from "vue-router"; // Dùng để chuyển trang
 // import api from "../axios/api";
 import userService from "../../services/userService";
 
+import { showNotification } from "../../utils/notification";
+
 const authStore = useAuthStore();
 const user = ref({});
 const bookingHistory = ref([]);
@@ -241,16 +243,27 @@ const updateUserInfo = async () => {
 
   try {
     await userService.editUser(formData, user.value.id);
-    alert("Thông tin đã được cập nhật thành công!");
+    showNotification({
+      title: "Cập nhật thành công!",
+      message: "Thông tin người dùng đã được cập nhật.",
+      type: "success", // Hiển thị thông báo thành công
+      duration: 3000,
+    });
   } catch (error) {
     console.error("Lỗi khi cập nhật thông tin:", error);
     alert("Không thể cập nhật thông tin. Vui lòng thử lại.");
+    showNotification({
+      title: "Lỗi cập nhật!",
+      message: "Không thể cập nhật thông tin. Vui lòng thử lại.",
+      type: "error", // Hiển thị thông báo lỗi
+      duration: 3000,
+    });
   }
 };
 
 // Pagination variables
 const currentPage = ref(1);
-const itemsPerPage = 5; // Number of bookings per page
+const itemsPerPage = 10; // Number of bookings per page
 
 const viewBookingDetails = (bookingId) => {
   router.push(`/booking/${bookingId}`); // Chuyển hướng đến trang chi tiết booking
