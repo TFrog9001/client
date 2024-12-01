@@ -83,6 +83,7 @@ export const useAuthStore = defineStore('auth', {
             try {
                 const response = await api.get('/auth/me');
                 this.user = response.data.user;
+                Cookies.set('user_id', this.user.id);
                 localStorage.setItem('user', JSON.stringify(this.user));
             } catch (error) {
                 this.logout();

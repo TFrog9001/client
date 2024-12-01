@@ -235,6 +235,7 @@ const updateUserInfo = async () => {
   formData.append("name", user.value.name);
   formData.append("email", user.value.email);
   formData.append("phone", user.value.phone);
+  formData.append("role_id", '3');
 
   // Append avatar file nếu có
   if (user.value.avatarFile) {
