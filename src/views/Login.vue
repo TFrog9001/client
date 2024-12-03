@@ -63,8 +63,12 @@
           </el-button>
         </el-form-item>
       </el-form>
+      <template #footer>
+        <ForgotPassword />
+      </template>
     </el-card>
   </div>
+
 </template>
 
 <script setup>
@@ -74,11 +78,18 @@ import { useAuthStore } from "../stores/auth";
 import { User, Message, Lock, Right } from "@element-plus/icons-vue";
 import { showNotification } from "../utils/notification";
 import Cookies from "js-cookie";
+import ForgotPassword from "./Users/ForgotPassword.vue";
+import Test from "./Test.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
 const loading = ref(false);
 const googleLoading = ref(false); 
+const dialogVisible = ref(false);
+
+const openForgotPasswordDialog = () => {
+  dialogVisible.value = true;
+};
 
 const loginForm = reactive({
   email: "",

@@ -34,10 +34,15 @@
             <label class="form-label">Số điện thoại</label>
             <input type="tel" class="form-control" v-model="user.phone" />
           </div>
-          <div class="mt-4 text-right">
-            <button class="btn btn-primary" @click="updateUserInfo">
-              Lưu thông tin
-            </button>
+          <div class="row">
+            <div class="col mt-4 text-left">
+              <ForgotPassword text_title="Đổi mật khẩu" :phone="user.phone"/>
+            </div>
+            <div class="col mt-4 text-right">
+              <button class="btn btn-primary" @click="updateUserInfo">
+                Lưu thông tin
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -206,6 +211,7 @@ import bookingService from "@/services/bookingService";
 import { useRouter } from "vue-router"; // Dùng để chuyển trang
 // import api from "../axios/api";
 import userService from "../../services/userService";
+import ForgotPassword from "./ForgotPassword.vue";
 
 import { showNotification } from "../../utils/notification";
 
@@ -235,7 +241,7 @@ const updateUserInfo = async () => {
   formData.append("name", user.value.name);
   formData.append("email", user.value.email);
   formData.append("phone", user.value.phone);
-  formData.append("role_id", '3');
+  formData.append("role_id", "3");
 
   // Append avatar file nếu có
   if (user.value.avatarFile) {
