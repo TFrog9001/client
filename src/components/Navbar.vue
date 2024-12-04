@@ -10,7 +10,7 @@
     <img
       src="../assets/images/logo.png"
       alt="Logo"
-      style="height: 50px;"
+      style="height: 50px"
       class="ma-3"
     />
     <v-toolbar-title>Sân Bóng AT</v-toolbar-title>
@@ -33,7 +33,7 @@
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn text v-bind="props">
-              <v-avatar :image="userAvatar" class="mr-2"></v-avatar>
+              <v-avatar :image="getStaffAvatar(userAvatar)" class="mr-2"></v-avatar>
               {{ userName }}
             </v-btn>
           </template>
@@ -114,7 +114,7 @@ const menuItems = ref([
 const isActive = (path) => route.path === path;
 
 const fecthUserInfor = () => {
-  const user = JSON.parse(localStorage.getItem("user"));  
+  const user = JSON.parse(localStorage.getItem("user"));
   if (user) {
     userName.value = user.name;
     if (user.avatar != null && user.avatar != "") {
@@ -138,6 +138,16 @@ const logout = () => {
 onMounted(() => {
   fecthUserInfor();
 });
+
+const getStaffAvatar = (avatar) => {
+  if (avatar && avatar.startsWith("avatars")) {
+    return `http://127.0.0.1:8000/storage/${avatar}`;
+  }
+  return (
+    avatar ||
+    "https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png"
+  );
+};
 </script>
 
 <style scoped>
@@ -146,7 +156,7 @@ onMounted(() => {
 }
 
 .active {
-  color: #00897B !important;
+  color: #00897b !important;
 }
 
 @media (max-width: 960px) {

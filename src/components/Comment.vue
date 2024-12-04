@@ -9,7 +9,7 @@
       >
         <div class="user-info">
           <img
-            :src="comment.user.avatar || defaultAvatar"
+            :src="getStaffAvatar(comment.user.avatar) || defaultAvatar"
             alt="User Avatar"
             class="avatar"
           />
@@ -185,6 +185,16 @@ const submitComment = async () => {
       console.error("Error submitting comment:", error);
     }
   }
+};
+
+const getStaffAvatar = (avatar) => {
+  if (avatar && avatar.startsWith("avatars")) {
+    return `http://127.0.0.1:8000/storage/${avatar}`;
+  }
+  return (
+    avatar ||
+    "https://cdn3.iconfinder.com/data/icons/business-avatar-1/512/3_avatar-512.png"
+  );
 };
 
 // Format date

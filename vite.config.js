@@ -27,7 +27,7 @@ export default defineConfig({
       },
     },
     "/api/zalopay/callback": {
-      target: "https://mlatbooking.serveo.net",
+      target: "https://mlatbooking.loca.lt",
       changeOrigin: true,
     },
   },
